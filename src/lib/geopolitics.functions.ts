@@ -37,25 +37,25 @@ const REGIONS: {
     code: "NA",
     region: "North America",
     query:
-      '"US AI" OR "White House AI" OR "American AI" OR "Canada AI" OR "US chips"',
+      '"White House artificial intelligence" OR "US AI policy" OR "American AI" OR "Canada artificial intelligence" OR "US chip export"',
   },
   {
     code: "EU",
     region: "Europe",
     query:
-      '"EU AI" OR "Europe AI" OR "European AI" OR "UK AI" OR "Britain AI"',
+      '"EU AI Act" OR "European Commission artificial intelligence" OR "Europe AI regulation" OR "UK artificial intelligence"',
   },
   {
     code: "AP",
     region: "Asia-Pacific",
     query:
-      '"China AI" OR "Chinese AI" OR "Japan AI" OR "South Korea AI" OR "India AI" OR "Singapore AI" OR "Taiwan chips"',
+      '"China artificial intelligence" OR "Chinese AI" OR "Japan AI" OR "South Korea artificial intelligence" OR "India AI" OR "Taiwan chips"',
   },
   {
     code: "RW",
     region: "Rest of World",
     query:
-      '"Gulf AI" OR "Saudi AI" OR "UAE AI" OR "Brazil AI" OR "Africa AI" OR "UN AI" OR "OECD AI"',
+      '"Saudi Arabia artificial intelligence" OR "UAE AI" OR "India AI" OR "Brazil AI" OR "United Nations AI" OR "Africa artificial intelligence"',
   },
 ];
 
@@ -63,11 +63,11 @@ const DOMAINS =
   "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com,bloomberg.com,apnews.com,cnbc.com";
 
 const SYSTEM_PROMPT =
-  "You are a geopolitics analyst covering AI. Based on these recent headlines, write 2-3 sentences on this region's current AI positioning — national strategy, investment, chip policy, export controls, major deals or regulation. If the headlines cover multiple countries in the region, capture the overall regional picture. Be neutral and factual. Only say 'No significant developments recently' if the headlines are genuinely irrelevant.";
+  "You are a geopolitics analyst covering AI. Based on these recent headlines, write 2-3 sentences on this region's current AI positioning — national strategy, investment, chip policy, export controls, major deals or regulation. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. If the headlines cover multiple countries in the region, capture the overall regional picture. Be neutral and factual. Only say 'No significant developments recently' if the headlines are genuinely irrelevant.";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const NEWS_TIMEOUT_MS = 4_000;
-const SUMMARY_TIMEOUT_MS = 4_000;
+const SUMMARY_TIMEOUT_MS = 8_000;
 let cache: { payload: GeopoliticsPayload; expiresAt: number } | null = null;
 let inflight: Promise<GeopoliticsPayload> | null = null;
 
@@ -104,7 +104,7 @@ async function fetchRegionHeadlines(
   error: string | null;
 }> {
   const q = encodeURIComponent(query);
-  const url = `https://newsapi.org/v2/everything?qInTitle=${q}&language=en&sortBy=publishedAt&pageSize=25&domains=${DOMAINS}`;
+  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=25&domains=${DOMAINS}`;
   try {
     const res = await fetchWithTimeout(
       url,
