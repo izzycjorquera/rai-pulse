@@ -66,8 +66,24 @@ const SYSTEM_PROMPT =
   "You are an AI policy analyst. Based on these recent headlines, write 2-3 sentences summarising how this jurisdiction is currently positioning itself on AI regulation. Focus on direction of travel, not individual news items. Be neutral and factual. If the headlines don't contain enough signal, say 'No significant developments this week' rather than speculating.";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const NEWS_TIMEOUT_MS = 8_000;
+const SUMMARY_TIMEOUT_MS = 12_000;
 let cache: { payload: GeopoliticsPayload; expiresAt: number } | null = null;
 let inflight: Promise<GeopoliticsPayload> | null = null;
+
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function isAllowedUrl(u: string): boolean {
   const allowed = DOMAINS.split(",");
@@ -90,9 +106,13 @@ async function fetchRegionHeadlines(
   const q = encodeURIComponent(query);
   const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=25&domains=${DOMAINS}`;
   try {
-    const res = await fetch(url, {
-      headers: { "X-Api-Key": newsKey, "User-Agent": "RAI-Pulse/1.0" },
-    });
+    const res = await fetchWithTimeout(
+      url,
+      {
+        headers: { "X-Api-Key": newsKey, "User-Agent": "RAI-Pulse/1.0" },
+      },
+      NEWS_TIMEOUT_MS,
+    );
     const json = (await res.json()) as NewsApiResponse;
     if (!res.ok || json.status !== "ok" || !json.articles) {
       return {
@@ -132,25 +152,29 @@ async function generateSummary(
     .map((h, i) => `- ${h.title}\n  ${descriptions[i] ?? ""}`.trim())
     .join("\n");
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+    const res = await fetchWithTimeout(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 350,
+          system: SYSTEM_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: `Region: ${region}\n\nRecent headlines:\n${body}`,
+            },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 350,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: `Region: ${region}\n\nRecent headlines:\n${body}`,
-          },
-        ],
-      }),
-    });
+      SUMMARY_TIMEOUT_MS,
+    );
     if (!res.ok) return null;
     const json = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>;
