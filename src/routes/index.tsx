@@ -3,6 +3,7 @@ import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
+import { getGeopolitics } from "@/lib/geopolitics.functions";
 
 const feedQueryOptions = queryOptions({
   queryKey: ["regulatory-feed"],
@@ -16,10 +17,17 @@ const governanceQueryOptions = queryOptions({
   staleTime: 15 * 60_000,
 });
 
+const geopoliticsQueryOptions = queryOptions({
+  queryKey: ["geopolitics"],
+  queryFn: () => getGeopolitics(),
+  staleTime: 24 * 60 * 60_000,
+});
+
 export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(feedQueryOptions);
     context.queryClient.prefetchQuery(governanceQueryOptions);
+    context.queryClient.prefetchQuery(geopoliticsQueryOptions);
   },
   component: Index,
 });
@@ -38,42 +46,6 @@ function inferTags(text: string): string[] {
   if (tags.length === 0) tags.push("AI Regulation");
   return tags.slice(0, 2);
 }
-
-const GEOPOLITICS: {
-  region: string;
-  code: string;
-  headline: string;
-  status: string;
-}[] = [
-  {
-    region: "United States",
-    code: "US",
-    headline: "Executive order on AI safety enforcement uncertain",
-    status:
-      "Agency rules (NIST, FTC, SEC) continue to fill the gap while federal legislation remains stalled.",
-  },
-  {
-    region: "European Union",
-    code: "EU",
-    headline: "AI Act obligations now apply to prohibited practices",
-    status:
-      "High-risk system and GPAI deadlines roll through 2025–2026; the AI Office is staffing enforcement.",
-  },
-  {
-    region: "United Kingdom",
-    code: "UK",
-    headline: "Pro-innovation framework under consultation",
-    status:
-      "Sector regulators (ICO, FCA, Ofcom, CMA) are expected to publish cross-sector guidance.",
-  },
-  {
-    region: "China",
-    code: "CN",
-    headline: "Draft algorithmic and deepfake rules advance",
-    status:
-      "State-led standards move fast; compliance focus on algorithmic filing and content labels.",
-  },
-];
 
 const READ_OF_THE_WEEK = {
   title: "Frontier AI Regulation: Managing Emerging Risks to Public Safety",
