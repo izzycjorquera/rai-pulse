@@ -260,7 +260,7 @@ function Index() {
             {GEOPOLITICS.map((g) => (
               <div
                 key={g.code}
-                className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
