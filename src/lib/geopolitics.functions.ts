@@ -206,22 +206,63 @@ async function buildPayload(): Promise<GeopoliticsPayload> {
   const newsKey = process.env.NEWSAPI_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  const regions = await Promise.all(
-    REGIONS.map(async ({ code, region, query }): Promise<RegionSummary> => {
-      if (!newsKey) {
-        return {
-          code,
-          region,
-          summary: "Update unavailable",
-          summaryGenerated: false,
-          headlines: [],
-          error: "Missing NEWSAPI_KEY",
-        };
+  if (!newsKey) {
+    return {
+      regions: REGIONS.map(({ code, region }) => ({
+        code,
+        region,
+        summary: "Update unavailable",
+        summaryGenerated: false,
+        headlines: [],
+        error: "Missing NEWSAPI_KEY",
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  // 1. Fetch all regions in parallel
+  const raw = await Promise.all(
+    REGIONS.map(({ query }) => fetchRegionHeadlines(newsKey, query)),
+  );
+
+  // 2. Deduplicate URLs across regions — keep each URL in the region where it
+  //    ranks highest (smallest index in fetched list); on ties, first region.
+  const bestRegionFor = new Map<string, { regionIdx: number; itemIdx: number }>();
+  raw.forEach((r, regionIdx) => {
+    r.headlines.forEach((h, itemIdx) => {
+      const cur = bestRegionFor.get(h.url);
+      if (
+        !cur ||
+        itemIdx < cur.itemIdx ||
+        (itemIdx === cur.itemIdx && regionIdx < cur.regionIdx)
+      ) {
+        bestRegionFor.set(h.url, { regionIdx, itemIdx });
       }
-      const { headlines, descriptions, error } = await fetchRegionHeadlines(
-        newsKey,
-        query,
-      );
+    });
+  });
+
+  const deduped = raw.map((r, regionIdx) => {
+    const kept: { headlines: RegionHeadline[]; descriptions: string[] } = {
+      headlines: [],
+      descriptions: [],
+    };
+    r.headlines.forEach((h, i) => {
+      if (bestRegionFor.get(h.url)?.regionIdx === regionIdx) {
+        kept.headlines.push(h);
+        kept.descriptions.push(r.descriptions[i] ?? "");
+      }
+    });
+    return {
+      headlines: kept.headlines.slice(0, 3),
+      descriptions: kept.descriptions.slice(0, 3),
+      error: r.error,
+    };
+  });
+
+  // 3. Summarise each region in parallel from its deduped set
+  const regions = await Promise.all(
+    REGIONS.map(async ({ code, region }, i): Promise<RegionSummary> => {
+      const { headlines, descriptions, error } = deduped[i];
       if (error || headlines.length === 0) {
         return {
           code,
