@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
+import { getGovernanceAngle } from "@/lib/governance.functions";
 
 const feedQueryOptions = queryOptions({
   queryKey: ["regulatory-feed"],
@@ -9,8 +10,17 @@ const feedQueryOptions = queryOptions({
   staleTime: 5 * 60_000,
 });
 
+const governanceQueryOptions = queryOptions({
+  queryKey: ["governance-angle"],
+  queryFn: () => getGovernanceAngle(),
+  staleTime: 15 * 60_000,
+});
+
 export const Route = createFileRoute("/")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(feedQueryOptions),
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(feedQueryOptions);
+    context.queryClient.prefetchQuery(governanceQueryOptions);
+  },
   component: Index,
 });
 
@@ -28,44 +38,6 @@ function inferTags(text: string): string[] {
   if (tags.length === 0) tags.push("AI Regulation");
   return tags.slice(0, 2);
 }
-
-type GovernanceItem = {
-  title: string;
-  angle: string;
-  summary: string;
-  tags: string[];
-};
-
-const GOVERNANCE_ANGLE: GovernanceItem[] = [
-  {
-    title: "OpenAI releases new reasoning model",
-    angle: "GPAI transparency test",
-    summary:
-      "Under the EU AI Act, providers must disclose training data summaries, system capabilities and known risks. The latest release is a real-time test of whether voluntary code-of-practice commitments hold up.",
-    tags: ["GPAI", "Transparency"],
-  },
-  {
-    title: "Anthropic expands AI safety red-teaming program",
-    angle: "Risk management signal",
-    summary:
-      "Structured red-teaming is becoming a de facto requirement for high-risk and foundation-model systems. Expect this to feed into standards requests under NIST, EU harmonised standards and UK context windows.",
-    tags: ["Safety", "Standards"],
-  },
-  {
-    title: "Apple Intelligence launches across EU devices",
-    angle: "Market gatekeeping",
-    summary:
-      "On-device processing limits data-flow risks, but cloud-based features still trigger questions about Article 52 high-risk disclosures, data processing under GDPR and DMA gatekeeper obligations.",
-    tags: ["EU AI Act", "Privacy"],
-  },
-  {
-    title: "GitHub Copilot copyright class action progresses",
-    angle: "Liability upstream",
-    summary:
-      "The case continues to shape how training data, output filtering and downstream use are treated in copyright and product-liability regimes. Watch for settlements that become industry templates.",
-    tags: ["AI Liability", "Copyright"],
-  },
-];
 
 const GEOPOLITICS: {
   region: string;
@@ -145,6 +117,7 @@ function SectionHeading({
 function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
   const articles = feed.articles;
+  const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
   return (
     <SiteLayout
       eyebrow="Latest briefing"
@@ -218,30 +191,56 @@ function Index() {
             title="Governance angle"
             description="Tech news seen through the lens of compliance, risk and accountability."
           />
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
-            {GOVERNANCE_ANGLE.map((item, i) => (
-              <li
-                key={item.title}
-                className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
-                  i === 0 ? "lg:col-span-2" : ""
-                }`}
-              >
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-primary">{item.angle}</span>
-                  <span className="text-border">·</span>
-                  <span className="font-medium text-foreground/80">{item.title}</span>
-                </div>
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                  {item.summary}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {item.tags.map((t) => (
-                    <TagBadge key={t}>{t}</TagBadge>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
+          {governance?.error && (governance.articles.length === 0) && (
+            <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              Couldn't load governance angle: {governance.error}
+            </div>
+          )}
+          {governanceLoading && !governance && (
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <li
+                  key={i}
+                  className={`h-40 animate-pulse rounded-xl border border-border bg-card shadow-card ${
+                    i === 0 ? "lg:col-span-2" : ""
+                  }`}
+                />
+              ))}
+            </ul>
+          )}
+          {governance && governance.articles.length > 0 && (
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
+              {governance.articles.map((item, i) => (
+                <li
+                  key={item.url}
+                  className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
+                    i === 0 ? "lg:col-span-2" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/80">{item.source}</span>
+                    <span>{item.date}</span>
+                  </div>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block"
+                  >
+                    <h3 className="text-base font-semibold leading-snug text-primary hover:underline">
+                      {item.title}
+                    </h3>
+                  </a>
+                  <div className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/80">
+                    {item.takeGenerated ? "Governance take" : "Article summary"}
+                  </div>
+                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {item.take}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         {/* Geopolitics Watch */}
