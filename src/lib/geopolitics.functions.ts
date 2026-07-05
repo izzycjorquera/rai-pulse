@@ -43,7 +43,7 @@ const REGIONS: {
     code: "EU",
     region: "Europe",
     query:
-      '"EU AI Act" OR "European Commission artificial intelligence" OR "Europe AI regulation" OR "UK artificial intelligence"',
+      '"European Commission AI" OR "EU AI Act" OR "Brussels artificial intelligence" OR "UK artificial intelligence"',
   },
   {
     code: "AP",
@@ -63,7 +63,7 @@ const DOMAINS =
   "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com,bloomberg.com,apnews.com,cnbc.com";
 
 const SYSTEM_PROMPT =
-  "You are a geopolitics analyst covering AI. Based on these recent headlines, write 2-3 sentences on this region's current AI positioning — national strategy, investment, chip policy, export controls, major deals or regulation. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. If the headlines cover multiple countries in the region, capture the overall regional picture. Be neutral and factual. Only say 'No significant developments recently' if the headlines are genuinely irrelevant.";
+  "You are a geopolitics analyst covering AI. Based on these recent headlines, write 2-3 sentences on this region's current AI positioning — national strategy, investment, chip policy, export controls, major deals or regulation. Maximum 3 sentences, roughly 60 words. This is a hard limit. Plain text only, no markdown, no asterisks, no bold. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. If the headlines cover multiple countries in the region, capture the overall regional picture. Be neutral and factual. Write for a reader who cannot see your source articles. Never refer to 'the headlines', 'the coverage', 'the articles provided' or comment on what the sources do or don't contain. Brief the reader directly on the region's AI positioning based on what the articles report. If the articles contain only weak or tangential signal for this region, write one short factual sentence about what is happening rather than explaining why you can't summarise — for example 'Recent developments centre on X' — and nothing more.";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const NEWS_TIMEOUT_MS = 4_000;
@@ -123,7 +123,7 @@ async function fetchRegionHeadlines(
     }
     const filtered = json.articles
       .filter((a) => a.title && a.url && isAllowedUrl(a.url))
-      .slice(0, 3);
+      .slice(0, 10);
     return {
       headlines: filtered.map((a) => ({
         title: a.title as string,
@@ -163,7 +163,7 @@ async function generateSummary(
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 350,
+          max_tokens: 120,
           system: SYSTEM_PROMPT,
           messages: [
             {
@@ -183,6 +183,7 @@ async function generateSummary(
       ?.filter((c) => c.type === "text" && c.text)
       .map((c) => c.text as string)
       .join(" ")
+      .replace(/\*+/g, "")
       .trim();
     return text && text.length > 0 ? text : null;
   } catch {
@@ -205,22 +206,63 @@ async function buildPayload(): Promise<GeopoliticsPayload> {
   const newsKey = process.env.NEWSAPI_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  const regions = await Promise.all(
-    REGIONS.map(async ({ code, region, query }): Promise<RegionSummary> => {
-      if (!newsKey) {
-        return {
-          code,
-          region,
-          summary: "Update unavailable",
-          summaryGenerated: false,
-          headlines: [],
-          error: "Missing NEWSAPI_KEY",
-        };
+  if (!newsKey) {
+    return {
+      regions: REGIONS.map(({ code, region }) => ({
+        code,
+        region,
+        summary: "Update unavailable",
+        summaryGenerated: false,
+        headlines: [],
+        error: "Missing NEWSAPI_KEY",
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  // 1. Fetch all regions in parallel
+  const raw = await Promise.all(
+    REGIONS.map(({ query }) => fetchRegionHeadlines(newsKey, query)),
+  );
+
+  // 2. Deduplicate URLs across regions — keep each URL in the region where it
+  //    ranks highest (smallest index in fetched list); on ties, first region.
+  const bestRegionFor = new Map<string, { regionIdx: number; itemIdx: number }>();
+  raw.forEach((r, regionIdx) => {
+    r.headlines.forEach((h, itemIdx) => {
+      const cur = bestRegionFor.get(h.url);
+      if (
+        !cur ||
+        itemIdx < cur.itemIdx ||
+        (itemIdx === cur.itemIdx && regionIdx < cur.regionIdx)
+      ) {
+        bestRegionFor.set(h.url, { regionIdx, itemIdx });
       }
-      const { headlines, descriptions, error } = await fetchRegionHeadlines(
-        newsKey,
-        query,
-      );
+    });
+  });
+
+  const deduped = raw.map((r, regionIdx) => {
+    const kept: { headlines: RegionHeadline[]; descriptions: string[] } = {
+      headlines: [],
+      descriptions: [],
+    };
+    r.headlines.forEach((h, i) => {
+      if (bestRegionFor.get(h.url)?.regionIdx === regionIdx) {
+        kept.headlines.push(h);
+        kept.descriptions.push(r.descriptions[i] ?? "");
+      }
+    });
+    return {
+      headlines: kept.headlines.slice(0, 3),
+      descriptions: kept.descriptions.slice(0, 3),
+      error: r.error,
+    };
+  });
+
+  // 3. Summarise each region in parallel from its deduped set
+  const regions = await Promise.all(
+    REGIONS.map(async ({ code, region }, i): Promise<RegionSummary> => {
+      const { headlines, descriptions, error } = deduped[i];
       if (error || headlines.length === 0) {
         return {
           code,
