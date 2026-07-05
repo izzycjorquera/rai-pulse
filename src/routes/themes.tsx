@@ -89,7 +89,7 @@ function ThemesPage() {
         {THEMES.map((t) => (
           <section
             key={t.title}
-            className="rounded-xl border border-border bg-card p-6"
+            className="rounded-xl border border-border bg-card p-6 shadow-card"
           >
             <div className="flex flex-wrap gap-1.5">
               {t.tags.map((tag) => (

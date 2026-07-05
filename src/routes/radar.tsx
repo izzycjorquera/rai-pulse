@@ -69,7 +69,7 @@ function RadarPage() {
         {ITEMS.map((item) => (
           <li key={item.title} className="mb-6 ml-6">
             <span className="absolute -left-1.5 mt-2 h-3 w-3 rounded-full border border-primary bg-background" />
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span className="font-semibold text-primary">{item.when}</span>
                 <span className="rounded-md bg-secondary px-2 py-0.5 text-[11px] uppercase tracking-wider">

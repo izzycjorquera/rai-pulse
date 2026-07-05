@@ -196,13 +196,13 @@ function Index() {
             {ARTICLES.map((a) => (
               <li
                 key={a.title}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
               >
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="font-medium text-foreground/80">{a.source}</span>
                   <span>{a.date}</span>
                 </div>
-                <h2 className="mt-3 text-base font-semibold leading-snug text-foreground group-hover:text-primary">
+                <h2 className="mt-3 text-base font-semibold leading-snug text-primary">
                   {a.title}
                 </h2>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
@@ -229,7 +229,7 @@ function Index() {
             {GOVERNANCE_ANGLE.map((item) => (
               <li
                 key={item.title}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
               >
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="font-medium text-primary">{item.angle}</span>
@@ -260,7 +260,7 @@ function Index() {
             {GEOPOLITICS.map((g) => (
               <div
                 key={g.code}
-                className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
@@ -286,9 +286,9 @@ function Index() {
             title="Read of the week"
             description="One paper or book worth your time, with a three-sentence digest."
           />
-          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-8">
+          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 p-6 shadow-card sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/60 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/80 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {READ_OF_THE_WEEK.type}
               </div>
               <div className="flex-1">

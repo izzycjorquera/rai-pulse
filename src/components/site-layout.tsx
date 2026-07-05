@@ -85,7 +85,7 @@ export function SiteLayout({
 
 export function TagBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+    <span className="inline-flex items-center rounded-full border border-border bg-secondary/80 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
       {children}
     </span>
   );
