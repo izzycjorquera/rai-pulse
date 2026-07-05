@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 export type RegionHeadline = { title: string; url: string; source: string };
 
 export type RegionSummary = {
-  code: "US" | "EU" | "UK" | "CN";
+  code: "NA" | "EU" | "AP" | "RW";
   region: string;
   summary: string;
   summaryGenerated: boolean;
@@ -34,26 +34,28 @@ const REGIONS: {
   query: string;
 }[] = [
   {
-    code: "US",
-    region: "United States",
+    code: "NA",
+    region: "North America",
     query:
-      '"US AI" OR "White House AI" OR "Trump AI" OR "Congress AI" OR "America AI"',
+      '"US AI" OR "White House AI" OR "American AI" OR "Canada AI" OR "US chips"',
   },
   {
     code: "EU",
-    region: "European Union",
+    region: "Europe",
     query:
-      '"EU AI" OR "European Commission AI" OR "Brussels AI" OR "AI Act"',
+      '"EU AI" OR "Europe AI" OR "European AI" OR "UK AI" OR "Britain AI"',
   },
   {
-    code: "UK",
-    region: "United Kingdom",
-    query: '"UK AI" OR "Britain AI" OR "British AI"',
+    code: "AP",
+    region: "Asia-Pacific",
+    query:
+      '"China AI" OR "Chinese AI" OR "Japan AI" OR "South Korea AI" OR "India AI" OR "Singapore AI" OR "Taiwan chips"',
   },
   {
-    code: "CN",
-    region: "China",
-    query: '"China AI" OR "Chinese AI" OR "Beijing AI"',
+    code: "RW",
+    region: "Rest of World",
+    query:
+      '"Gulf AI" OR "Saudi AI" OR "UAE AI" OR "Brazil AI" OR "Africa AI" OR "UN AI" OR "OECD AI"',
   },
 ];
 
@@ -61,7 +63,7 @@ const DOMAINS =
   "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com,bloomberg.com,apnews.com,cnbc.com";
 
 const SYSTEM_PROMPT =
-  "You are an AI policy analyst. Based on these recent headlines, write 2-3 sentences summarising how this jurisdiction is currently positioning itself on AI regulation. Focus on direction of travel, not individual news items. Be neutral and factual. If the headlines don't contain enough signal, say 'No significant developments recently' rather than speculating.";
+  "You are a geopolitics analyst covering AI. Based on these recent headlines, write 2-3 sentences on this region's current AI positioning — national strategy, investment, chip policy, export controls, major deals or regulation. If the headlines cover multiple countries in the region, capture the overall regional picture. Be neutral and factual. Only say 'No significant developments recently' if the headlines are genuinely irrelevant.";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const NEWS_TIMEOUT_MS = 4_000;
