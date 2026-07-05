@@ -37,33 +37,31 @@ const REGIONS: {
     code: "US",
     region: "United States",
     query:
-      '(AI OR "artificial intelligence") AND (US OR "United States" OR "White House" OR Congress OR Biden OR Trump) AND (regulation OR policy OR bill OR executive OR law)',
+      '"US AI" OR "White House AI" OR "Trump AI" OR "Congress AI" OR "America AI"',
   },
   {
     code: "EU",
     region: "European Union",
     query:
-      '"AI Act" OR ("artificial intelligence" AND (Brussels OR "European Commission" OR EU OR "AI Office"))',
+      '"EU AI" OR "European Commission AI" OR "Brussels AI" OR "AI Act"',
   },
   {
     code: "UK",
     region: "United Kingdom",
-    query:
-      '(AI OR "artificial intelligence") AND (UK OR Britain OR "United Kingdom" OR AISI) AND (regulation OR policy OR government OR bill)',
+    query: '"UK AI" OR "Britain AI" OR "British AI"',
   },
   {
     code: "CN",
     region: "China",
-    query:
-      '(AI OR "artificial intelligence") AND (China OR Chinese OR Beijing OR CAC) AND (regulation OR rules OR policy OR law)',
+    query: '"China AI" OR "Chinese AI" OR "Beijing AI"',
   },
 ];
 
 const DOMAINS =
-  "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com";
+  "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com,bloomberg.com,apnews.com,cnbc.com";
 
 const SYSTEM_PROMPT =
-  "You are an AI policy analyst. Based on these recent headlines, write 2-3 sentences summarising how this jurisdiction is currently positioning itself on AI regulation. Focus on direction of travel, not individual news items. Be neutral and factual. If the headlines don't contain enough signal, say 'No significant developments this week' rather than speculating.";
+  "You are an AI policy analyst. Based on these recent headlines, write 2-3 sentences summarising how this jurisdiction is currently positioning itself on AI regulation. Focus on direction of travel, not individual news items. Be neutral and factual. If the headlines don't contain enough signal, say 'No significant developments recently' rather than speculating.";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const NEWS_TIMEOUT_MS = 4_000;
@@ -104,7 +102,7 @@ async function fetchRegionHeadlines(
   error: string | null;
 }> {
   const q = encodeURIComponent(query);
-  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=25&domains=${DOMAINS}`;
+  const url = `https://newsapi.org/v2/everything?qInTitle=${q}&language=en&sortBy=publishedAt&pageSize=25&domains=${DOMAINS}`;
   try {
     const res = await fetchWithTimeout(
       url,
