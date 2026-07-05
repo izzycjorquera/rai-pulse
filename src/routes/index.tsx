@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
+import { getGovernanceAngle } from "@/lib/governance.functions";
 
 const feedQueryOptions = queryOptions({
   queryKey: ["regulatory-feed"],
@@ -9,8 +10,17 @@ const feedQueryOptions = queryOptions({
   staleTime: 5 * 60_000,
 });
 
+const governanceQueryOptions = queryOptions({
+  queryKey: ["governance-angle"],
+  queryFn: () => getGovernanceAngle(),
+  staleTime: 15 * 60_000,
+});
+
 export const Route = createFileRoute("/")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(feedQueryOptions),
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(feedQueryOptions);
+    context.queryClient.prefetchQuery(governanceQueryOptions);
+  },
   component: Index,
 });
 
