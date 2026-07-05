@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
