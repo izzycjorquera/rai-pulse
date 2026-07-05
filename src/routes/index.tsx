@@ -117,6 +117,7 @@ function SectionHeading({
 function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
   const articles = feed.articles;
+  const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
   return (
     <SiteLayout
       eyebrow="Latest briefing"
