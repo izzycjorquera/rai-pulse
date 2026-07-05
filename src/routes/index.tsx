@@ -221,7 +221,7 @@ function Index() {
           <SectionHeading
             eyebrow="Global map"
             title="Geopolitics watch"
-            description="Quick read on how the US, EU, UK and China are positioning AI regulation."
+            description="Quick read on how the world's regions are positioning on AI — strategy, chips, investment and regulation."
           />
           {geopolitics?.updatedAt && (
             <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
