@@ -123,7 +123,7 @@ async function fetchRegionHeadlines(
     }
     const filtered = json.articles
       .filter((a) => a.title && a.url && isAllowedUrl(a.url))
-      .slice(0, 3);
+      .slice(0, 10);
     return {
       headlines: filtered.map((a) => ({
         title: a.title as string,
