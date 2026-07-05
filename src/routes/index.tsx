@@ -192,29 +192,42 @@ function Index() {
             title="Regulatory feed"
             description="Headlines from regulators, standards bodies and civil society with governance context attached."
           />
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {ARTICLES.map((a) => (
-              <li
-                key={a.title}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
-              >
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground/80">{a.source}</span>
-                  <span>{a.date}</span>
-                </div>
-                <h2 className="mt-3 text-base font-semibold leading-snug text-primary">
-                  {a.title}
-                </h2>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
-                  {a.summary}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {a.tags.map((t) => (
-                    <TagBadge key={t}>{t}</TagBadge>
-                  ))}
-                </div>
-              </li>
-            ))}
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
+            {ARTICLES.map((a, i) => {
+              const featured = i === 0;
+              return (
+                <li
+                  key={a.title}
+                  className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
+                    featured ? "lg:col-span-2 lg:row-span-2 lg:p-7" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/80">{a.source}</span>
+                    <span>{a.date}</span>
+                  </div>
+                  <h2
+                    className={`mt-3 font-semibold leading-snug text-primary ${
+                      featured ? "text-2xl sm:text-3xl" : "text-base"
+                    }`}
+                  >
+                    {a.title}
+                  </h2>
+                  <p
+                    className={`mt-2 flex-1 leading-relaxed text-muted-foreground ${
+                      featured ? "text-base" : "text-sm"
+                    }`}
+                  >
+                    {a.summary}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {a.tags.map((t) => (
+                      <TagBadge key={t}>{t}</TagBadge>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
 
@@ -225,11 +238,13 @@ function Index() {
             title="Governance angle"
             description="Tech news seen through the lens of compliance, risk and accountability."
           />
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {GOVERNANCE_ANGLE.map((item) => (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
+            {GOVERNANCE_ANGLE.map((item, i) => (
               <li
                 key={item.title}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
+                className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
+                  i === 0 ? "lg:col-span-2" : ""
+                }`}
               >
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="font-medium text-primary">{item.angle}</span>
