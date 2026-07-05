@@ -202,7 +202,7 @@ function Index() {
                   <span className="font-medium text-foreground/80">{a.source}</span>
                   <span>{a.date}</span>
                 </div>
-                <h2 className="mt-3 text-base font-semibold leading-snug text-foreground group-hover:text-primary">
+                <h2 className="mt-3 text-base font-semibold leading-snug text-primary">
                   {a.title}
                 </h2>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
