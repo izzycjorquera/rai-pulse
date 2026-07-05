@@ -3,6 +3,7 @@ import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
+import { getGeopolitics } from "@/lib/geopolitics.functions";
 
 const feedQueryOptions = queryOptions({
   queryKey: ["regulatory-feed"],
@@ -16,10 +17,17 @@ const governanceQueryOptions = queryOptions({
   staleTime: 15 * 60_000,
 });
 
+const geopoliticsQueryOptions = queryOptions({
+  queryKey: ["geopolitics"],
+  queryFn: () => getGeopolitics(),
+  staleTime: 24 * 60 * 60_000,
+});
+
 export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(feedQueryOptions);
     context.queryClient.prefetchQuery(governanceQueryOptions);
+    context.queryClient.prefetchQuery(geopoliticsQueryOptions);
   },
   component: Index,
 });
@@ -38,42 +46,6 @@ function inferTags(text: string): string[] {
   if (tags.length === 0) tags.push("AI Regulation");
   return tags.slice(0, 2);
 }
-
-const GEOPOLITICS: {
-  region: string;
-  code: string;
-  headline: string;
-  status: string;
-}[] = [
-  {
-    region: "United States",
-    code: "US",
-    headline: "Executive order on AI safety enforcement uncertain",
-    status:
-      "Agency rules (NIST, FTC, SEC) continue to fill the gap while federal legislation remains stalled.",
-  },
-  {
-    region: "European Union",
-    code: "EU",
-    headline: "AI Act obligations now apply to prohibited practices",
-    status:
-      "High-risk system and GPAI deadlines roll through 2025–2026; the AI Office is staffing enforcement.",
-  },
-  {
-    region: "United Kingdom",
-    code: "UK",
-    headline: "Pro-innovation framework under consultation",
-    status:
-      "Sector regulators (ICO, FCA, Ofcom, CMA) are expected to publish cross-sector guidance.",
-  },
-  {
-    region: "China",
-    code: "CN",
-    headline: "Draft algorithmic and deepfake rules advance",
-    status:
-      "State-led standards move fast; compliance focus on algorithmic filing and content labels.",
-  },
-];
 
 const READ_OF_THE_WEEK = {
   title: "Frontier AI Regulation: Managing Emerging Risks to Public Safety",
@@ -118,6 +90,7 @@ function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
   const articles = feed.articles;
   const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
+  const { data: geopolitics, isLoading: geopoliticsLoading } = useQuery(geopoliticsQueryOptions);
   return (
     <SiteLayout
       eyebrow="Latest briefing"
@@ -250,26 +223,69 @@ function Index() {
             title="Geopolitics watch"
             description="Quick read on how the US, EU, UK and China are positioning AI regulation."
           />
+          {geopolitics?.updatedAt && (
+            <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <span>
+                Last updated{" "}
+                {new Date(geopolitics.updatedAt).toLocaleString(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+              <span className="text-border">·</span>
+              <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+                AI-generated summary
+              </span>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {GEOPOLITICS.map((g) => (
-              <div
-                key={g.code}
-                className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                    {g.code}
-                  </span>
-                  {g.region}
-                </div>
-                <h3 className="mt-3 text-sm font-semibold leading-snug text-foreground">
-                  {g.headline}
-                </h3>
-                <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
-                  {g.status}
-                </p>
-              </div>
-            ))}
+            {geopoliticsLoading && !geopolitics
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-56 animate-pulse rounded-xl border border-border bg-card shadow-card"
+                  />
+                ))
+              : geopolitics?.regions.map((g) => (
+                  <div
+                    key={g.code}
+                    className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+                        {g.code}
+                      </span>
+                      {g.region}
+                    </div>
+                    <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {g.summary}
+                    </p>
+                    {g.headlines.length > 0 && (
+                      <div className="mt-4 border-t border-border/60 pt-3">
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+                          Sources
+                        </div>
+                        <ul className="space-y-1.5">
+                          {g.headlines.map((h) => (
+                            <li key={h.url} className="text-xs leading-snug">
+                              <a
+                                href={h.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {h.title}
+                              </a>
+                              <span className="ml-1 text-muted-foreground">
+                                — {h.source}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
           </div>
         </section>
 
