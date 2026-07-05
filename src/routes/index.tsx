@@ -1,68 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
+import { getRegulatoryFeed } from "@/lib/news.functions";
+
+const feedQueryOptions = queryOptions({
+  queryKey: ["regulatory-feed"],
+  queryFn: () => getRegulatoryFeed(),
+  staleTime: 5 * 60_000,
+});
 
 export const Route = createFileRoute("/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(feedQueryOptions),
   component: Index,
 });
 
-type Article = {
-  title: string;
-  source: string;
-  date: string;
-  summary: string;
-  tags: string[];
-};
-
-const ARTICLES: Article[] = [
-  {
-    title: "EU AI Office publishes GPAI code of practice signatories update",
-    source: "European Commission",
-    date: "2 days ago",
-    summary:
-      "Providers of general-purpose AI models detail transparency and copyright commitments ahead of August enforcement milestones.",
-    tags: ["EU AI Act", "GPAI"],
-  },
-  {
-    title: "NIST releases updated AI RMF profile for generative systems",
-    source: "NIST",
-    date: "4 days ago",
-    summary:
-      "New guidance sharpens risk categorisation for foundation models, with expanded evaluation and red-teaming expectations.",
-    tags: ["Standards", "NIST"],
-  },
-  {
-    title: "ICO opens consultation on automated decision-making rules",
-    source: "ICO",
-    date: "1 week ago",
-    summary:
-      "UK regulator seeks views on how Article 22-style protections should apply under the reformed data protection regime.",
-    tags: ["UK", "Enforcement"],
-  },
-  {
-    title: "OECD updates AI incidents monitor with sectoral breakdown",
-    source: "OECD.AI",
-    date: "1 week ago",
-    summary:
-      "Financial services and healthcare see largest rise in reported incidents; methodology now aligns with EU AI Act categories.",
-    tags: ["Global Frameworks", "Sector News"],
-  },
-  {
-    title: "First AI Act high-risk system enforcement action signalled",
-    source: "IAPP",
-    date: "2 weeks ago",
-    summary:
-      "A national market surveillance authority previews the first formal investigation of a workplace monitoring system.",
-    tags: ["Enforcement", "High-Risk AI"],
-  },
-  {
-    title: "Ada Lovelace Institute: liability gaps in agentic AI supply chains",
-    source: "Ada Lovelace Institute",
-    date: "3 weeks ago",
-    summary:
-      "New report maps accountability shortfalls when autonomous agents chain together third-party models and tools.",
-    tags: ["AI Liability", "Research"],
-  },
-];
+function inferTags(text: string): string[] {
+  const t = text.toLowerCase();
+  const tags: string[] = [];
+  if (t.includes("eu ai act") || t.includes("ai act")) tags.push("EU AI Act");
+  if (t.includes("gpai") || t.includes("general-purpose")) tags.push("GPAI");
+  if (t.includes("nist")) tags.push("NIST");
+  if (t.includes("enforcement") || t.includes("fine") || t.includes("penalt"))
+    tags.push("Enforcement");
+  if (t.includes("liability")) tags.push("AI Liability");
+  if (t.includes("responsible ai") || t.includes("ethics"))
+    tags.push("Responsible AI");
+  if (tags.length === 0) tags.push("AI Regulation");
+  return tags.slice(0, 2);
+}
 
 type GovernanceItem = {
   title: string;
@@ -178,6 +143,8 @@ function SectionHeading({
 }
 
 function Index() {
+  const { data: feed } = useSuspenseQuery(feedQueryOptions);
+  const articles = feed.articles;
   return (
     <SiteLayout
       eyebrow="Latest briefing"
@@ -192,9 +159,15 @@ function Index() {
             title="Regulatory feed"
             description="Headlines from regulators, standards bodies and civil society with governance context attached."
           />
+          {feed.error && articles.length === 0 && (
+            <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              Couldn't load live articles: {feed.error}
+            </div>
+          )}
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
-            {ARTICLES.map((a, i) => {
+            {articles.map((a, i) => {
               const featured = i === 0;
+              const tags = inferTags(`${a.title} ${a.summary}`);
               return (
                 <li
                   key={a.title}
@@ -206,13 +179,20 @@ function Index() {
                     <span className="font-medium text-foreground/80">{a.source}</span>
                     <span>{a.date}</span>
                   </div>
-                  <h2
-                    className={`mt-3 font-semibold leading-snug text-primary ${
-                      featured ? "text-2xl sm:text-3xl" : "text-base"
-                    }`}
+                  <a
+                    href={a.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block"
                   >
-                    {a.title}
-                  </h2>
+                    <h2
+                      className={`font-semibold leading-snug text-primary hover:underline ${
+                        featured ? "text-2xl sm:text-3xl" : "text-base"
+                      }`}
+                    >
+                      {a.title}
+                    </h2>
+                  </a>
                   <p
                     className={`mt-2 flex-1 leading-relaxed text-muted-foreground ${
                       featured ? "text-base" : "text-sm"
@@ -221,7 +201,7 @@ function Index() {
                     {a.summary}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-1.5">
-                    {a.tags.map((t) => (
+                    {tags.map((t) => (
                       <TagBadge key={t}>{t}</TagBadge>
                     ))}
                   </div>
