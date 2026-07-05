@@ -90,6 +90,7 @@ function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
   const articles = feed.articles;
   const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
+  const { data: geopolitics, isLoading: geopoliticsLoading } = useQuery(geopoliticsQueryOptions);
   return (
     <SiteLayout
       eyebrow="Latest briefing"
