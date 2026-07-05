@@ -196,7 +196,7 @@ function Index() {
             {ARTICLES.map((a) => (
               <li
                 key={a.title}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
               >
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="font-medium text-foreground/80">{a.source}</span>
