@@ -229,7 +229,7 @@ function Index() {
             {GOVERNANCE_ANGLE.map((item) => (
               <li
                 key={item.title}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
               >
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="font-medium text-primary">{item.angle}</span>
