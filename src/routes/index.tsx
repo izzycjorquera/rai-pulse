@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
@@ -38,44 +38,6 @@ function inferTags(text: string): string[] {
   if (tags.length === 0) tags.push("AI Regulation");
   return tags.slice(0, 2);
 }
-
-type GovernanceItem = {
-  title: string;
-  angle: string;
-  summary: string;
-  tags: string[];
-};
-
-const GOVERNANCE_ANGLE: GovernanceItem[] = [
-  {
-    title: "OpenAI releases new reasoning model",
-    angle: "GPAI transparency test",
-    summary:
-      "Under the EU AI Act, providers must disclose training data summaries, system capabilities and known risks. The latest release is a real-time test of whether voluntary code-of-practice commitments hold up.",
-    tags: ["GPAI", "Transparency"],
-  },
-  {
-    title: "Anthropic expands AI safety red-teaming program",
-    angle: "Risk management signal",
-    summary:
-      "Structured red-teaming is becoming a de facto requirement for high-risk and foundation-model systems. Expect this to feed into standards requests under NIST, EU harmonised standards and UK context windows.",
-    tags: ["Safety", "Standards"],
-  },
-  {
-    title: "Apple Intelligence launches across EU devices",
-    angle: "Market gatekeeping",
-    summary:
-      "On-device processing limits data-flow risks, but cloud-based features still trigger questions about Article 52 high-risk disclosures, data processing under GDPR and DMA gatekeeper obligations.",
-    tags: ["EU AI Act", "Privacy"],
-  },
-  {
-    title: "GitHub Copilot copyright class action progresses",
-    angle: "Liability upstream",
-    summary:
-      "The case continues to shape how training data, output filtering and downstream use are treated in copyright and product-liability regimes. Watch for settlements that become industry templates.",
-    tags: ["AI Liability", "Copyright"],
-  },
-];
 
 const GEOPOLITICS: {
   region: string;
