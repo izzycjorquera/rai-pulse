@@ -36,22 +36,26 @@ const REGIONS: {
   {
     code: "US",
     region: "United States",
-    query: '"US AI regulation" OR "White House AI" OR "Congress AI"',
+    query:
+      '(AI OR "artificial intelligence") AND (US OR "United States" OR "White House" OR Congress OR Biden OR Trump) AND (regulation OR policy OR bill OR executive OR law)',
   },
   {
     code: "EU",
     region: "European Union",
-    query: '"EU AI Act" OR "European Commission AI"',
+    query:
+      '"AI Act" OR ("artificial intelligence" AND (Brussels OR "European Commission" OR EU OR "AI Office"))',
   },
   {
     code: "UK",
     region: "United Kingdom",
-    query: '"UK AI regulation" OR "UK government AI" OR "AISI"',
+    query:
+      '(AI OR "artificial intelligence") AND (UK OR Britain OR "United Kingdom" OR AISI) AND (regulation OR policy OR government OR bill)',
   },
   {
     code: "CN",
     region: "China",
-    query: '"China AI regulation" OR "CAC AI" OR "Beijing AI rules"',
+    query:
+      '(AI OR "artificial intelligence") AND (China OR Chinese OR Beijing OR CAC) AND (regulation OR rules OR policy OR law)',
   },
 ];
 
