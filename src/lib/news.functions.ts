@@ -44,7 +44,19 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
     const q = encodeURIComponent(
       '"AI regulation" OR "EU AI Act" OR "responsible AI"',
     );
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=6`;
+    const domains =
+      "bbc.co.uk,reuters.com,ft.com,politico.eu,theverge.com,wired.com,technologyreview.com,theguardian.com";
+    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=20&domains=${domains}`;
+
+    const allowedDomains = domains.split(",");
+    const isAllowedUrl = (articleUrl: string) => {
+      try {
+        const host = new URL(articleUrl).hostname.replace(/^www\./, "");
+        return allowedDomains.some((d) => host === d || host.endsWith(`.${d}`));
+      } catch {
+        return false;
+      }
+    };
 
     try {
       const res = await fetch(url, {
@@ -55,7 +67,9 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
         return { articles: [], error: json.message ?? `HTTP ${res.status}` };
       }
       const articles: FeedArticle[] = json.articles
-        .filter((a) => a.title && a.description)
+        .filter(
+          (a) => a.title && a.description && a.url && isAllowedUrl(a.url),
+        )
         .slice(0, 6)
         .map((a) => ({
           title: a.title as string,
