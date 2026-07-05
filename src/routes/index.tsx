@@ -286,9 +286,9 @@ function Index() {
             title="Read of the week"
             description="One paper or book worth your time, with a three-sentence digest."
           />
-          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-8">
+          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 p-6 shadow-card sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/60 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/80 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {READ_OF_THE_WEEK.type}
               </div>
               <div className="flex-1">
