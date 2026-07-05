@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(feedQueryOptions);
     context.queryClient.prefetchQuery(governanceQueryOptions);
-    context.queryClient.prefetchQuery(geopoliticsQueryOptions);
+    context.queryClient.ensureQueryData(geopoliticsQueryOptions);
   },
   component: Index,
 });
@@ -90,11 +90,7 @@ function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
   const articles = feed.articles;
   const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
-  const {
-    data: geopolitics,
-    isLoading: geopoliticsLoading,
-    isError: geopoliticsError,
-  } = useQuery(geopoliticsQueryOptions);
+  const { data: geopolitics } = useSuspenseQuery(geopoliticsQueryOptions);
   return (
     <SiteLayout
       eyebrow="Latest briefing"
@@ -243,43 +239,7 @@ function Index() {
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {geopoliticsLoading && !geopolitics
-              ? ["US", "EU", "UK", "CN"].map((code) => (
-                  <div
-                    key={code}
-                    className="flex min-h-56 flex-col rounded-xl border border-border bg-card p-5 shadow-card"
-                  >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                        {code}
-                      </span>
-                      Loading regional update…
-                    </div>
-                    <div className="mt-5 space-y-3" aria-hidden="true">
-                      <div className="h-3 w-full animate-pulse rounded-full bg-muted" />
-                      <div className="h-3 w-5/6 animate-pulse rounded-full bg-muted" />
-                      <div className="h-3 w-2/3 animate-pulse rounded-full bg-muted" />
-                    </div>
-                  </div>
-                ))
-              : geopoliticsError
-                ? ["US", "EU", "UK", "CN"].map((code) => (
-                    <div
-                      key={code}
-                      className="flex min-h-56 flex-col rounded-xl border border-border bg-card p-5 shadow-card"
-                    >
-                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                          {code}
-                        </span>
-                        Update unavailable
-                      </div>
-                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                        This region could not be refreshed right now.
-                      </p>
-                    </div>
-                  ))
-              : geopolitics?.regions.map((g) => (
+            {geopolitics.regions.map((g) => (
                   <div
                     key={g.code}
                     className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
