@@ -223,26 +223,69 @@ function Index() {
             title="Geopolitics watch"
             description="Quick read on how the US, EU, UK and China are positioning AI regulation."
           />
+          {geopolitics?.updatedAt && (
+            <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <span>
+                Last updated{" "}
+                {new Date(geopolitics.updatedAt).toLocaleString(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+              <span className="text-border">·</span>
+              <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+                AI-generated summary
+              </span>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {GEOPOLITICS.map((g) => (
-              <div
-                key={g.code}
-                className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                    {g.code}
-                  </span>
-                  {g.region}
-                </div>
-                <h3 className="mt-3 text-sm font-semibold leading-snug text-foreground">
-                  {g.headline}
-                </h3>
-                <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
-                  {g.status}
-                </p>
-              </div>
-            ))}
+            {geopoliticsLoading && !geopolitics
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-56 animate-pulse rounded-xl border border-border bg-card shadow-card"
+                  />
+                ))
+              : geopolitics?.regions.map((g) => (
+                  <div
+                    key={g.code}
+                    className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+                        {g.code}
+                      </span>
+                      {g.region}
+                    </div>
+                    <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {g.summary}
+                    </p>
+                    {g.headlines.length > 0 && (
+                      <div className="mt-4 border-t border-border/60 pt-3">
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+                          Sources
+                        </div>
+                        <ul className="space-y-1.5">
+                          {g.headlines.map((h) => (
+                            <li key={h.url} className="text-xs leading-snug">
+                              <a
+                                href={h.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {h.title}
+                              </a>
+                              <span className="ml-1 text-muted-foreground">
+                                — {h.source}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
           </div>
         </section>
 
