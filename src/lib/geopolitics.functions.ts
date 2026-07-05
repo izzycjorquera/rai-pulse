@@ -66,8 +66,8 @@ const SYSTEM_PROMPT =
   "You are an AI policy analyst. Based on these recent headlines, write 2-3 sentences summarising how this jurisdiction is currently positioning itself on AI regulation. Focus on direction of travel, not individual news items. Be neutral and factual. If the headlines don't contain enough signal, say 'No significant developments this week' rather than speculating.";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const NEWS_TIMEOUT_MS = 8_000;
-const SUMMARY_TIMEOUT_MS = 12_000;
+const NEWS_TIMEOUT_MS = 4_000;
+const SUMMARY_TIMEOUT_MS = 4_000;
 let cache: { payload: GeopoliticsPayload; expiresAt: number } | null = null;
 let inflight: Promise<GeopoliticsPayload> | null = null;
 
@@ -190,6 +190,17 @@ async function generateSummary(
   }
 }
 
+function buildFallbackSummary(
+  region: string,
+  headlines: RegionHeadline[],
+): string {
+  if (headlines.length === 0) return "Update unavailable";
+  const sources = Array.from(new Set(headlines.map((h) => h.source))).slice(0, 2);
+  return `${region} has recent AI policy signals across ${sources.join(
+    " and ",
+  )}. Review the source headlines below for the latest direction of travel while the AI-generated regional summary is unavailable.`;
+}
+
 async function buildPayload(): Promise<GeopoliticsPayload> {
   const newsKey = process.env.NEWSAPI_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -226,10 +237,10 @@ async function buildPayload(): Promise<GeopoliticsPayload> {
       return {
         code,
         region,
-        summary: summary || "Update unavailable",
+        summary: summary || buildFallbackSummary(region, headlines),
         summaryGenerated: Boolean(summary),
         headlines,
-        error: summary ? null : "Anthropic call failed",
+        error: summary ? null : "AI summary unavailable",
       };
     }),
   );
