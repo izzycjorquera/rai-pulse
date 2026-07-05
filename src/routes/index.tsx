@@ -191,30 +191,56 @@ function Index() {
             title="Governance angle"
             description="Tech news seen through the lens of compliance, risk and accountability."
           />
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
-            {GOVERNANCE_ANGLE.map((item, i) => (
-              <li
-                key={item.title}
-                className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
-                  i === 0 ? "lg:col-span-2" : ""
-                }`}
-              >
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-primary">{item.angle}</span>
-                  <span className="text-border">·</span>
-                  <span className="font-medium text-foreground/80">{item.title}</span>
-                </div>
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                  {item.summary}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {item.tags.map((t) => (
-                    <TagBadge key={t}>{t}</TagBadge>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
+          {governance?.error && (governance.articles.length === 0) && (
+            <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              Couldn't load governance angle: {governance.error}
+            </div>
+          )}
+          {governanceLoading && !governance && (
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <li
+                  key={i}
+                  className={`h-40 animate-pulse rounded-xl border border-border bg-card shadow-card ${
+                    i === 0 ? "lg:col-span-2" : ""
+                  }`}
+                />
+              ))}
+            </ul>
+          )}
+          {governance && governance.articles.length > 0 && (
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
+              {governance.articles.map((item, i) => (
+                <li
+                  key={item.url}
+                  className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
+                    i === 0 ? "lg:col-span-2" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/80">{item.source}</span>
+                    <span>{item.date}</span>
+                  </div>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block"
+                  >
+                    <h3 className="text-base font-semibold leading-snug text-primary hover:underline">
+                      {item.title}
+                    </h3>
+                  </a>
+                  <div className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/80">
+                    {item.takeGenerated ? "Governance take" : "Article summary"}
+                  </div>
+                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {item.take}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         {/* Geopolitics Watch */}
