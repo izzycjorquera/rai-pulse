@@ -111,9 +111,25 @@ function UpdatedLabel({ updatedAt }: { updatedAt?: string }) {
 
 function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
-  const articles = feed.articles;
   const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
   const { data: geopolitics } = useSuspenseQuery(geopoliticsQueryOptions);
+
+  // Global deduplication: no article URL may appear in more than one section.
+  // Priority order matches the on-page order: geopolitics → pulse → governance.
+  const claimed = new Set<string>();
+  for (const r of geopolitics.regions) {
+    for (const h of r.headlines) claimed.add(h.url);
+  }
+  const articles = feed.articles.filter((a) => {
+    if (claimed.has(a.url)) return false;
+    claimed.add(a.url);
+    return true;
+  });
+  const governanceArticles = (governance?.articles ?? []).filter((a) => {
+    if (claimed.has(a.url)) return false;
+    claimed.add(a.url);
+    return true;
+  });
   return (
     <SiteLayout
       eyebrow="Latest briefing"
@@ -121,7 +137,18 @@ function Index() {
       description="Curated updates across regulation, enforcement, standards and responsible AI practice — filtered for practitioners."
     >
       <div className="space-y-14">
-        {/* Feed */}
+        {/* Geopolitics — world picture first */}
+        <section>
+          <SectionHeading
+            eyebrow="Strategic analysis"
+            title="The World This Week"
+            description="AI power, policy and strategy — the geopolitical picture at a glance."
+          />
+          <UpdatedLabel updatedAt={geopolitics?.updatedAt} />
+          <GeopoliticsMap regions={geopolitics.regions} />
+        </section>
+
+        {/* Regulation feed */}
         <section>
           <SectionHeading
             eyebrow="Weekly briefing"
@@ -206,9 +233,9 @@ function Index() {
               ))}
             </ul>
           )}
-          {governance && governance.articles.length > 0 && (
+          {governance && governanceArticles.length > 0 && (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
-              {governance.articles.map((item, i) => (
+              {governanceArticles.map((item, i) => (
                 <li
                   key={item.url}
                   className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
@@ -239,17 +266,6 @@ function Index() {
               ))}
             </ul>
           )}
-        </section>
-
-        {/* Geopolitics Watch */}
-        <section>
-          <SectionHeading
-            eyebrow="Strategic analysis"
-            title="The World This Week"
-            description="AI power, policy and strategy — the geopolitical picture at a glance."
-          />
-          <UpdatedLabel updatedAt={geopolitics?.updatedAt} />
-          <GeopoliticsMap regions={geopolitics.regions} />
         </section>
 
         {/* Read of the Week */}
