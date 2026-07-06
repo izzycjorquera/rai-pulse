@@ -5,22 +5,24 @@ import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
 import { getGeopolitics } from "@/lib/geopolitics.functions";
 
+const WEEK_MS = 7 * 24 * 60 * 60_000;
+
 const feedQueryOptions = queryOptions({
   queryKey: ["regulatory-feed"],
   queryFn: () => getRegulatoryFeed(),
-  staleTime: 5 * 60_000,
+  staleTime: WEEK_MS,
 });
 
 const governanceQueryOptions = queryOptions({
   queryKey: ["governance-angle"],
   queryFn: () => getGovernanceAngle(),
-  staleTime: 15 * 60_000,
+  staleTime: WEEK_MS,
 });
 
 const geopoliticsQueryOptions = queryOptions({
   queryKey: ["geopolitics"],
   queryFn: () => getGeopolitics(),
-  staleTime: 24 * 60 * 60_000,
+  staleTime: WEEK_MS,
 });
 
 export const Route = createFileRoute("/")({
@@ -86,6 +88,26 @@ function SectionHeading({
   );
 }
 
+function UpdatedLabel({ updatedAt }: { updatedAt?: string }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+      {updatedAt && (
+        <>
+          <span>
+            Last updated{" "}
+            {new Date(updatedAt).toLocaleString(undefined, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </span>
+          <span className="text-border">·</span>
+        </>
+      )}
+      <span>New briefing every Monday</span>
+    </div>
+  );
+}
+
 function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
   const articles = feed.articles;
@@ -101,10 +123,11 @@ function Index() {
         {/* Feed */}
         <section>
           <SectionHeading
-            eyebrow="Industry updates"
-            title="Regulatory feed"
-            description="Headlines from regulators, standards bodies and civil society with governance context attached."
+            eyebrow="Weekly briefing"
+            title="This Week's Pulse"
+            description="The signal from the week in AI governance — updated every Monday."
           />
+          <UpdatedLabel updatedAt={feed.updatedAt} />
           {feed.error && articles.length === 0 && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
               Couldn't load live articles: {feed.error}
@@ -164,6 +187,7 @@ function Index() {
             title="Governance angle"
             description="Tech news seen through the lens of compliance, risk and accountability."
           />
+          <UpdatedLabel updatedAt={governance?.updatedAt} />
           {governance?.error && (governance.articles.length === 0) && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
               Couldn't load governance angle: {governance.error}
@@ -223,21 +247,7 @@ function Index() {
             title="Geopolitics watch"
             description="Quick read on how the world's regions are positioning on AI — strategy, chips, investment and regulation."
           />
-          {geopolitics?.updatedAt && (
-            <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <span>
-                Last updated{" "}
-                {new Date(geopolitics.updatedAt).toLocaleString(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
-              </span>
-              <span className="text-border">·</span>
-              <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
-                AI-generated summary
-              </span>
-            </div>
-          )}
+          <UpdatedLabel updatedAt={geopolitics?.updatedAt} />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {geopolitics.regions.map((g) => (
                   <div
