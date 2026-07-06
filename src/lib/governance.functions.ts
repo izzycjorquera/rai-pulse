@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { weeklyExpiresAt } from "./cache-schedule";
 
 export type GovernanceArticle = {
   title: string;
@@ -9,7 +10,11 @@ export type GovernanceArticle = {
   url: string;
 };
 
-type GovernancePayload = { articles: GovernanceArticle[]; error: string | null };
+type GovernancePayload = {
+  articles: GovernanceArticle[];
+  updatedAt: string;
+  error: string | null;
+};
 
 type NewsApiResponse = {
   status: string;
@@ -41,14 +46,11 @@ function relativeDate(iso: string): string {
 
 const EXCLUDE = /\b(regulation|regulatory|eu ai act|compliance)\b/i;
 
-const SYSTEM_PROMPT =
-  "You are a responsible AI governance analyst. Given a tech news headline and description, write exactly 2 sentences explaining what this development means for AI governance, compliance or accountability. Be specific and practical — write for practitioners, not academics. Do not restate the news; go straight to the implication.";
+const CURATION_PROMPT =
+  "From these articles, select the 2-3 most consequential for AI governance practitioners and briefly say why each matters. Plain text only, no markdown, no asterisks, no bold. Respond with ONLY a JSON array like [{\"index\":0,\"why\":\"...\"}]. The 'why' field must be one short sentence, roughly 25 words maximum, focused on the governance, compliance or accountability implication. Do not include any commentary outside the JSON.";
 
-// Cache aligned with the client-side staleTime (15 min) so a burst of visitors
-// doesn't trigger a burst of NewsAPI + Anthropic calls.
-const CACHE_TTL_MS = 15 * 60 * 1000;
-const NEWS_TIMEOUT_MS = 4_000;
-const TAKE_TIMEOUT_MS = 8_000;
+const NEWS_TIMEOUT_MS = 6_000;
+const CURATION_TIMEOUT_MS = 12_000;
 let cache: { payload: GovernancePayload; expiresAt: number } | null = null;
 let inflight: Promise<GovernancePayload> | null = null;
 
@@ -66,11 +68,24 @@ async function fetchWithTimeout(
   }
 }
 
-async function generateTake(
+type Candidate = {
+  title: string;
+  source: string;
+  date: string;
+  description: string;
+  url: string;
+};
+
+async function curateWithClaude(
   apiKey: string,
-  title: string,
-  description: string,
-): Promise<string | null> {
+  candidates: Candidate[],
+): Promise<{ index: number; why: string }[] | null> {
+  const list = candidates
+    .map(
+      (c, i) =>
+        `${i}. ${c.title}\n   Source: ${c.source}\n   ${c.description}`,
+    )
+    .join("\n\n");
   try {
     const res = await fetchWithTimeout(
       "https://api.anthropic.com/v1/messages",
@@ -83,28 +98,36 @@ async function generateTake(
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 300,
-          system: SYSTEM_PROMPT,
-          messages: [
-            {
-              role: "user",
-              content: `Headline: ${title}\n\nDescription: ${description}`,
-            },
-          ],
+          max_tokens: 400,
+          system: CURATION_PROMPT,
+          messages: [{ role: "user", content: list }],
         }),
       },
-      TAKE_TIMEOUT_MS,
+      CURATION_TIMEOUT_MS,
     );
     if (!res.ok) return null;
     const json = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>;
     };
-    const text = json.content
-      ?.filter((c) => c.type === "text" && c.text)
-      .map((c) => c.text as string)
-      .join(" ")
-      .trim();
-    return text && text.length > 0 ? text : null;
+    const text =
+      json.content
+        ?.filter((c) => c.type === "text" && c.text)
+        .map((c) => c.text as string)
+        .join(" ")
+        .trim() ?? "";
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]) as Array<{ index: number; why: string }>;
+    if (!Array.isArray(parsed)) return null;
+    return parsed
+      .filter(
+        (p) =>
+          typeof p.index === "number" &&
+          typeof p.why === "string" &&
+          p.index >= 0 &&
+          p.index < candidates.length,
+      )
+      .slice(0, 3);
   } catch {
     return null;
   }
@@ -113,7 +136,9 @@ async function generateTake(
 async function buildPayload(): Promise<GovernancePayload> {
   const newsKey = process.env.NEWSAPI_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!newsKey) return { articles: [], error: "Missing NEWSAPI_KEY" };
+  const nowIso = new Date().toISOString();
+  if (!newsKey)
+    return { articles: [], updatedAt: nowIso, error: "Missing NEWSAPI_KEY" };
 
   const q = encodeURIComponent(
     '"AI deployment" OR "foundation model" OR "AI acquisition" OR "AI product launch" OR "enterprise AI"',
@@ -142,10 +167,14 @@ async function buildPayload(): Promise<GovernancePayload> {
     );
     const json = (await res.json()) as NewsApiResponse;
     if (!res.ok || json.status !== "ok" || !json.articles) {
-      return { articles: [], error: json.message ?? `HTTP ${res.status}` };
+      return {
+        articles: [],
+        updatedAt: nowIso,
+        error: json.message ?? `HTTP ${res.status}`,
+      };
     }
 
-    const filtered = json.articles
+    const candidates: Candidate[] = json.articles
       .filter(
         (a) =>
           a.title &&
@@ -154,30 +183,56 @@ async function buildPayload(): Promise<GovernancePayload> {
           isAllowed(a.url) &&
           !EXCLUDE.test(a.title),
       )
-      .slice(0, 4);
+      .slice(0, 15)
+      .map((a) => ({
+        title: a.title as string,
+        source: a.source.name ?? "Unknown",
+        date: relativeDate(a.publishedAt),
+        description: a.description as string,
+        url: a.url,
+      }));
 
-    const articles = await Promise.all(
-      filtered.map(async (a) => {
-        const title = a.title as string;
-        const description = a.description as string;
-        const take = anthropicKey
-          ? await generateTake(anthropicKey, title, description)
-          : null;
-        return {
-          title,
-          source: a.source.name ?? "Unknown",
-          date: relativeDate(a.publishedAt),
-          take: take ?? description,
-          takeGenerated: Boolean(take),
-          url: a.url,
-        };
-      }),
-    );
+    let articles: GovernanceArticle[];
+    if (anthropicKey && candidates.length > 0) {
+      const picks = await curateWithClaude(anthropicKey, candidates);
+      if (picks && picks.length > 0) {
+        articles = picks.map((p) => {
+          const c = candidates[p.index];
+          return {
+            title: c.title,
+            source: c.source,
+            date: c.date,
+            take: p.why.trim(),
+            takeGenerated: true,
+            url: c.url,
+          };
+        });
+      } else {
+        articles = candidates.slice(0, 3).map((c) => ({
+          title: c.title,
+          source: c.source,
+          date: c.date,
+          take: c.description,
+          takeGenerated: false,
+          url: c.url,
+        }));
+      }
+    } else {
+      articles = candidates.slice(0, 3).map((c) => ({
+        title: c.title,
+        source: c.source,
+        date: c.date,
+        take: c.description,
+        takeGenerated: false,
+        url: c.url,
+      }));
+    }
 
-    return { articles, error: null };
+    return { articles, updatedAt: nowIso, error: null };
   } catch (e) {
     return {
       articles: [],
+      updatedAt: nowIso,
       error: e instanceof Error ? e.message : "Failed to fetch news",
     };
   }
@@ -192,7 +247,7 @@ export const getGovernanceAngle = createServerFn({ method: "GET" }).handler(
       .then((payload) => {
         // Don't cache hard failures — let the next request retry immediately.
         if (payload.error === null || payload.articles.length > 0) {
-          cache = { payload, expiresAt: Date.now() + CACHE_TTL_MS };
+          cache = { payload, expiresAt: weeklyExpiresAt() };
         }
         return payload;
       })
