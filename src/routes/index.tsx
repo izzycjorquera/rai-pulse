@@ -4,6 +4,7 @@ import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
 import { getGeopolitics } from "@/lib/geopolitics.functions";
+import { GeopoliticsMap } from "@/components/geopolitics-map";
 
 const WEEK_MS = 7 * 24 * 60 * 60_000;
 
@@ -243,53 +244,12 @@ function Index() {
         {/* Geopolitics Watch */}
         <section>
           <SectionHeading
-            eyebrow="Global map"
-            title="Geopolitics watch"
-            description="Quick read on how the world's regions are positioning on AI — strategy, chips, investment and regulation."
+            eyebrow="Strategic analysis"
+            title="The World This Week"
+            description="AI power, policy and strategy — the geopolitical picture at a glance."
           />
           <UpdatedLabel updatedAt={geopolitics?.updatedAt} />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {geopolitics.regions.map((g) => (
-                  <div
-                    key={g.code}
-                    className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50"
-                  >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                        {g.code}
-                      </span>
-                      {g.region}
-                    </div>
-                    <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                      {g.summary}
-                    </p>
-                    {g.headlines.length > 0 && (
-                      <div className="mt-4 border-t border-border/60 pt-3">
-                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
-                          Sources
-                        </div>
-                        <ul className="space-y-1.5">
-                          {g.headlines.map((h) => (
-                            <li key={h.url} className="text-xs leading-snug">
-                              <a
-                                href={h.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline"
-                              >
-                                {h.title}
-                              </a>
-                              <span className="ml-1 text-muted-foreground">
-                                — {h.source}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-          </div>
+          <GeopoliticsMap regions={geopolitics.regions} />
         </section>
 
         {/* Read of the Week */}
