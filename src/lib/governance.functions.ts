@@ -47,7 +47,7 @@ function relativeDate(iso: string): string {
 const EXCLUDE = /\b(regulation|regulatory|eu ai act|compliance)\b/i;
 
 const CURATION_PROMPT =
-  "From these articles, select the 2-3 most consequential for AI governance practitioners and briefly say why each matters. Plain text only, no markdown, no asterisks, no bold. Respond with ONLY a JSON array like [{\"index\":0,\"why\":\"...\"}]. The 'why' field must be one short sentence, roughly 25 words maximum, focused on the governance, compliance or accountability implication. Do not include any commentary outside the JSON.";
+  "This section covers COMPANY CONDUCT ONLY: product launches, model releases, enterprise deployments, acquisitions and other corporate AI decisions. EXCLUDE government policy, regulation, laws and enforcement (those belong to a separate regulation section) and EXCLUDE national strategy, chip policy or export controls (those belong to a separate geopolitics section). From these articles, select the 2-3 most consequential corporate stories of the week for AI governance practitioners and briefly say why each matters. Plain text only, no markdown, no asterisks, no bold. Respond with ONLY a JSON array like [{\"index\":0,\"why\":\"...\"}]. The 'why' field must be one short sentence, roughly 25 words maximum, focused on the governance, compliance or accountability implication. Do not include any commentary outside the JSON.";
 
 const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 12_000;
@@ -145,7 +145,10 @@ async function buildPayload(): Promise<GovernancePayload> {
   );
   const domains =
     "reuters.com,ft.com,wired.com,technologyreview.com,theverge.com";
-  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=25&domains=${domains}`;
+  const from = new Date(Date.now() - 7 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=25&from=${from}&domains=${domains}`;
 
   const allowed = domains.split(",");
   const isAllowed = (u: string) => {
