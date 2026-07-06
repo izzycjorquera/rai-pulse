@@ -44,7 +44,11 @@ function relativeDate(iso: string): string {
   return m <= 1 ? "1 month ago" : `${m} months ago`;
 }
 
-const EXCLUDE = /\b(regulation|regulatory|eu ai act|compliance)\b/i;
+// Only reject an article when its title is *primarily* about another lane
+// (regulation/law or geopolitics/export controls). A passing mention of
+// "regulation" or "policy" in a corporate story should NOT filter it out.
+const EXCLUDE =
+  /^(eu ai act|ai act)\b|\b(new regulation|new law|passes law|export controls?|chip ban|sanctions?)\b/i;
 
 const CURATION_PROMPT =
   "This section covers COMPANY CONDUCT ONLY: product launches, model releases, enterprise deployments, acquisitions and other corporate AI decisions. EXCLUDE government policy, regulation, laws and enforcement (those belong to a separate regulation section) and EXCLUDE national strategy, chip policy or export controls (those belong to a separate geopolitics section). From these articles, select the 2-3 most consequential corporate stories of the week for AI governance practitioners and briefly say why each matters. Plain text only, no markdown, no asterisks, no bold. Respond with ONLY a JSON array like [{\"index\":0,\"why\":\"...\"}]. The 'why' field must be one short sentence, roughly 25 words maximum, focused on the governance, compliance or accountability implication. Do not include any commentary outside the JSON.";
@@ -141,10 +145,10 @@ async function buildPayload(): Promise<GovernancePayload> {
     return { articles: [], updatedAt: nowIso, error: "Missing NEWSAPI_KEY" };
 
   const q = encodeURIComponent(
-    '"AI deployment" OR "foundation model" OR "AI acquisition" OR "AI product launch" OR "enterprise AI"',
+    '("artificial intelligence" OR "AI model" OR "generative AI" OR "foundation model" OR OpenAI OR Anthropic OR "Google DeepMind" OR Microsoft OR Nvidia OR Meta OR xAI OR Mistral) AND (launch OR launches OR unveils OR releases OR release OR acquires OR acquisition OR deployment OR deploys OR enterprise OR partnership OR deal OR raises OR funding)',
   );
   const domains =
-    "reuters.com,ft.com,wired.com,technologyreview.com,theverge.com";
+    "reuters.com,ft.com,wired.com,technologyreview.com,theverge.com,bloomberg.com,cnbc.com,techcrunch.com,axios.com";
   const from = new Date(Date.now() - 7 * 86_400_000)
     .toISOString()
     .slice(0, 10);
@@ -177,15 +181,17 @@ async function buildPayload(): Promise<GovernancePayload> {
       };
     }
 
-    const candidates: Candidate[] = json.articles
-      .filter(
-        (a) =>
-          a.title &&
-          a.description &&
-          a.url &&
-          isAllowed(a.url) &&
-          !EXCLUDE.test(a.title),
-      )
+    const preFilterCount = json.articles.length;
+    const afterAllowed = json.articles.filter(
+      (a) => a.title && a.description && a.url && isAllowed(a.url),
+    );
+    const afterExclude = afterAllowed.filter((a) => !EXCLUDE.test(a.title!));
+    console.log(
+      `[governance] newsapi total=${
+        (json as { totalResults?: number }).totalResults ?? "?"
+      } returned=${preFilterCount} allowed=${afterAllowed.length} afterExclude=${afterExclude.length}`,
+    );
+    const candidates: Candidate[] = afterExclude
       .slice(0, 15)
       .map((a) => ({
         title: a.title as string,
