@@ -14,6 +14,7 @@ export type RegionSummary = {
 
 export type GeopoliticsPayload = {
   regions: RegionSummary[];
+  globalBrief: string | null;
   updatedAt: string;
 };
 
@@ -65,6 +66,9 @@ const DOMAINS =
 
 const SYSTEM_PROMPT =
   "You are a geopolitics analyst covering AI. Focus strictly on geopolitics and strategy: national AI strategy, sovereign compute, chip and semiconductor policy, export controls, international competition and cross-border deals. EXCLUDE stories about specific laws or regulations (those belong to a separate regulation section) and stories about individual company product launches or corporate deployments (those belong to a separate company section). Based on these recent headlines, write 2-3 sentences on this region's current AI strategic positioning. Maximum 3 sentences, roughly 60 words. This is a hard limit. Plain text only, no markdown, no asterisks, no bold. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. Be neutral and factual. Write for a reader who cannot see your source articles. Never refer to 'the headlines', 'the coverage', 'the articles provided' or comment on what the sources do or don't contain. If the articles contain only weak or tangential signal for this region, write one short factual sentence about what is happening rather than explaining why you can't summarise.";
+
+const GLOBAL_SYSTEM_PROMPT =
+  "You are a geopolitics analyst. Synthesise these four regional AI briefings into one global overview of the week — AI strategy, sovereign compute, chips, export controls, international competition. Maximum 4 sentences, 90 words. Plain text, no markdown. Write for a reader who cannot see the regional briefings.";
 
 const NEWS_TIMEOUT_MS = 4_000;
 const SUMMARY_TIMEOUT_MS = 8_000;
@@ -194,6 +198,50 @@ async function generateSummary(
   }
 }
 
+async function generateGlobalBrief(
+  apiKey: string,
+  regions: RegionSummary[],
+): Promise<string | null> {
+  const body = regions
+    .filter((r) => r.summaryGenerated && r.summary)
+    .map((r) => `${r.region}: ${r.summary}`)
+    .join("\n\n");
+  if (!body) return null;
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 200,
+          system: GLOBAL_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: body }],
+        }),
+      },
+      SUMMARY_TIMEOUT_MS,
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+    };
+    const text = json.content
+      ?.filter((c) => c.type === "text" && c.text)
+      .map((c) => c.text as string)
+      .join(" ")
+      .replace(/\*+/g, "")
+      .trim();
+    return text && text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildFallbackSummary(
   region: string,
   headlines: RegionHeadline[],
@@ -219,6 +267,7 @@ async function buildPayload(): Promise<GeopoliticsPayload> {
         headlines: [],
         error: "Missing NEWSAPI_KEY",
       })),
+      globalBrief: null,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -290,7 +339,11 @@ async function buildPayload(): Promise<GeopoliticsPayload> {
     }),
   );
 
-  return { regions, updatedAt: new Date().toISOString() };
+  const globalBrief = anthropicKey
+    ? await generateGlobalBrief(anthropicKey, regions)
+    : null;
+
+  return { regions, globalBrief, updatedAt: new Date().toISOString() };
 }
 
 export const getGeopolitics = createServerFn({ method: "GET" }).handler(
