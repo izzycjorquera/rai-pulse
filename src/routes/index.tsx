@@ -145,7 +145,10 @@ function Index() {
             description="AI power, policy and strategy — the geopolitical picture at a glance."
           />
           <UpdatedLabel updatedAt={geopolitics?.updatedAt} />
-          <GeopoliticsMap regions={geopolitics.regions} />
+          <GeopoliticsMap
+            regions={geopolitics.regions}
+            globalBrief={geopolitics.globalBrief}
+          />
         </section>
 
         {/* Regulation feed */}
