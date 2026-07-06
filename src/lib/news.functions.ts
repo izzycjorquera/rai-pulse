@@ -44,7 +44,7 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  "From these articles, select the 2-3 most consequential for AI governance practitioners and briefly say why each matters. Plain text only, no markdown, no asterisks, no bold. Respond with ONLY a JSON array like [{\"index\":0,\"why\":\"...\"}]. The 'why' field must be one short sentence, roughly 25 words maximum. Do not include any commentary outside the JSON.";
+  "This section covers AI REGULATION ONLY: laws, enforcement actions, regulator consultations, standards bodies, official guidance. EXCLUDE geopolitics and national-strategy stories (chips, export controls, sovereign compute, international competition) and EXCLUDE individual company product launches or corporate deployments. From these articles, select the 2-3 most consequential regulation stories of the week for AI governance practitioners and briefly say why each matters. Plain text only, no markdown, no asterisks, no bold. Respond with ONLY a JSON array like [{\"index\":0,\"why\":\"...\"}]. The 'why' field must be one short sentence, roughly 25 words maximum. Do not include any commentary outside the JSON.";
 
 const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 12_000;
@@ -145,11 +145,14 @@ async function buildPayload(): Promise<FeedPayload> {
   }
 
     const q = encodeURIComponent(
-      '"AI regulation" OR "EU AI Act" OR "responsible AI"',
+      '"AI regulation" OR "EU AI Act" OR "AI enforcement" OR "AI liability" OR "responsible AI" OR "AI standards"',
     );
     const domains =
       "bbc.co.uk,reuters.com,ft.com,politico.eu,theverge.com,wired.com,technologyreview.com,theguardian.com";
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=20&domains=${domains}`;
+    const from = new Date(Date.now() - 7 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=20&from=${from}&domains=${domains}`;
 
     const allowedDomains = domains.split(",");
     const isAllowedUrl = (articleUrl: string) => {
