@@ -65,7 +65,10 @@ const DOMAINS =
   "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com,bloomberg.com,apnews.com,cnbc.com,euractiv.com,euronews.com,bbc.co.uk,dw.com,nikkei.com";
 
 const SYSTEM_PROMPT =
-  "You are a geopolitics analyst covering AI. Focus strictly on geopolitics and strategy: national AI strategy, sovereign compute, chip and semiconductor policy, export controls, international competition and cross-border deals. EXCLUDE stories about specific laws or regulations (those belong to a separate regulation section) and stories about individual company product launches or corporate deployments (those belong to a separate company section). Based on these recent headlines, write 2-3 sentences on this region's current AI strategic positioning. Maximum 3 sentences, roughly 60 words. This is a hard limit. Plain text only, no markdown, no asterisks, no bold. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. Be neutral and factual. Write for a reader who cannot see your source articles. Never refer to 'the headlines', 'the coverage', 'the articles provided' or comment on what the sources do or don't contain. If the articles contain only weak or tangential signal for this region, write one short factual sentence about what is happening rather than explaining why you can't summarise.";
+  "You are a geopolitics analyst covering AI. Focus strictly on geopolitics and strategy: national AI strategy, sovereign compute, chip and semiconductor policy, export controls, international competition and cross-border deals. EXCLUDE stories about specific laws or regulations (those belong to a separate regulation section) and stories about individual company product launches or corporate deployments (those belong to a separate company section). You must only make claims supported by the provided articles. If the articles don't contain relevant signal for this region, output exactly: \"No significant developments in this region this week.\" and stop. Never add analysis from your own background knowledge — everything you write must be traceable to the provided articles. Otherwise write 2-3 sentences on this region's current AI strategic positioning, maximum 3 sentences and roughly 60 words. This is a hard limit. Plain text only, no markdown, no asterisks, no bold. Be neutral and factual. Write for a reader who cannot see your source articles. Never refer to 'the headlines', 'the coverage', 'the articles provided' or comment on what the sources do or don't contain.";
+
+const NO_DEVELOPMENTS = "No significant developments in this region this week.";
+const META_COMMENTARY = /none of (these|the) headlines|not relevant to this region|no relevant|don'?t contain|do not contain|articles provided|the coverage|the headlines|cannot summari|can'?t summari|unable to summari/i;
 
 const GLOBAL_SYSTEM_PROMPT =
   "You are a geopolitics analyst. Synthesise these four regional AI briefings into one global overview of the week — AI strategy, sovereign compute, chips, export controls, international competition. Maximum 4 sentences, 90 words. Plain text, no markdown. Write for a reader who cannot see the regional briefings.";
@@ -192,7 +195,9 @@ async function generateSummary(
       .join(" ")
       .replace(/\*+/g, "")
       .trim();
-    return text && text.length > 0 ? text : null;
+    if (!text || text.length === 0) return null;
+    if (META_COMMENTARY.test(text)) return NO_DEVELOPMENTS;
+    return text;
   } catch {
     return null;
   }
