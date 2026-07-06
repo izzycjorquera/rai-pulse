@@ -18,17 +18,20 @@ const REGION_COORDS: Record<RegionSummary["code"], [number, number]> = {
   RW: [30, 0], // Rest of World (Africa / MENA / Latin America midpoint)
 };
 
-type Props = { regions: RegionSummary[] };
+type Props = { regions: RegionSummary[]; globalBrief?: string | null };
 
-export function GeopoliticsMap({ regions }: Props) {
+export function GeopoliticsMap({ regions, globalBrief }: Props) {
   const active = regions.filter(
     (r) => r.summary && r.summary.trim().length > 0,
   );
   const [selectedCode, setSelectedCode] = useState<
     RegionSummary["code"] | null
-  >(active[0]?.code ?? null);
+  >(null);
 
-  const selected = active.find((r) => r.code === selectedCode) ?? active[0];
+  const selected =
+    selectedCode != null
+      ? active.find((r) => r.code === selectedCode) ?? null
+      : null;
 
   return (
     <div className="space-y-6">
@@ -170,29 +173,50 @@ export function GeopoliticsMap({ regions }: Props) {
                   </ul>
                 </div>
               )}
-              {active.length > 1 && (
-                <div className="mt-5 flex flex-wrap gap-1.5 border-t border-border/60 pt-4">
-                  {active.map((r) => (
-                    <button
-                      key={r.code}
-                      type="button"
-                      onClick={() => setSelectedCode(r.code)}
-                      className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-colors ${
-                        selected.code === r.code
-                          ? "border-primary bg-primary/15 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                      }`}
-                    >
-                      {r.region}
-                    </button>
-                  ))}
+              <div className="mt-5 flex flex-wrap gap-1.5 border-t border-border/60 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCode(null)}
+                  className="rounded-full border border-border px-3 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                >
+                  ← Global overview
+                </button>
+                {active.map((r) => (
+                  <button
+                    key={r.code}
+                    type="button"
+                    onClick={() => setSelectedCode(r.code)}
+                    className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-colors ${
+                      selected.code === r.code
+                        ? "border-primary bg-primary/15 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                    }`}
+                  >
+                    {r.region}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                Around the world in brief
+              </div>
+              <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                The global picture
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                {globalBrief ??
+                  (active.length === 0
+                    ? "No regional signal this week."
+                    : "Global synthesis unavailable this week — click a dot on the map for a regional briefing.")}
+              </p>
+              {active.length > 0 && (
+                <div className="mt-5 border-t border-border/60 pt-4 text-[11px] text-muted-foreground/80">
+                  Click a dot on the map for the regional briefing.
                 </div>
               )}
             </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No regional signal this week.
-            </p>
           )}
         </aside>
       </div>
