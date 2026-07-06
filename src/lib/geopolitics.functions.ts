@@ -38,33 +38,33 @@ const REGIONS: {
     code: "NA",
     region: "North America",
     query:
-      '"White House artificial intelligence" OR "US AI policy" OR "American AI" OR "Canada artificial intelligence" OR "US chip export"',
+      '("White House" OR "United States" OR Washington OR Pentagon OR Canada) AND ("artificial intelligence" OR "AI strategy" OR "AI policy" OR "chip export" OR "export controls" OR semiconductors)',
   },
   {
     code: "EU",
     region: "Europe",
     query:
-      '"European Commission AI" OR "EU AI Act" OR "Brussels artificial intelligence" OR "UK artificial intelligence"',
+      '("European Commission" OR "European Union" OR Brussels OR "United Kingdom" OR Britain OR Germany OR France OR Netherlands) AND ("artificial intelligence" OR "AI strategy" OR "AI sovereignty" OR "AI chips" OR semiconductors OR "export controls")',
   },
   {
     code: "AP",
     region: "Asia-Pacific",
     query:
-      '"China artificial intelligence" OR "Chinese AI" OR "Japan AI" OR "South Korea artificial intelligence" OR "India AI" OR "Taiwan chips"',
+      '(China OR Chinese OR Japan OR "South Korea" OR India OR Taiwan OR Singapore OR Australia) AND ("artificial intelligence" OR "AI strategy" OR "AI chips" OR semiconductors OR "export controls")',
   },
   {
     code: "RW",
     region: "Rest of World",
     query:
-      '"Saudi Arabia artificial intelligence" OR "UAE AI" OR "India AI" OR "Brazil AI" OR "United Nations AI" OR "Africa artificial intelligence"',
+      '("Saudi Arabia" OR UAE OR "United Arab Emirates" OR Brazil OR "United Nations" OR Africa OR Israel OR Turkey) AND ("artificial intelligence" OR "AI strategy" OR "sovereign AI" OR "AI chips")',
   },
 ];
 
 const DOMAINS =
-  "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com,bloomberg.com,apnews.com,cnbc.com";
+  "reuters.com,ft.com,politico.eu,politico.com,theguardian.com,scmp.com,bloomberg.com,apnews.com,cnbc.com,euractiv.com,euronews.com,bbc.co.uk,dw.com,nikkei.com";
 
 const SYSTEM_PROMPT =
-  "You are a geopolitics analyst covering AI. Based on these recent headlines, write 2-3 sentences on this region's current AI positioning — national strategy, investment, chip policy, export controls, major deals or regulation. Maximum 3 sentences, roughly 60 words. This is a hard limit. Plain text only, no markdown, no asterisks, no bold. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. If the headlines cover multiple countries in the region, capture the overall regional picture. Be neutral and factual. Write for a reader who cannot see your source articles. Never refer to 'the headlines', 'the coverage', 'the articles provided' or comment on what the sources do or don't contain. Brief the reader directly on the region's AI positioning based on what the articles report. If the articles contain only weak or tangential signal for this region, write one short factual sentence about what is happening rather than explaining why you can't summarise — for example 'Recent developments centre on X' — and nothing more.";
+  "You are a geopolitics analyst covering AI. Focus strictly on geopolitics and strategy: national AI strategy, sovereign compute, chip and semiconductor policy, export controls, international competition and cross-border deals. EXCLUDE stories about specific laws or regulations (those belong to a separate regulation section) and stories about individual company product launches or corporate deployments (those belong to a separate company section). Based on these recent headlines, write 2-3 sentences on this region's current AI strategic positioning. Maximum 3 sentences, roughly 60 words. This is a hard limit. Plain text only, no markdown, no asterisks, no bold. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. Be neutral and factual. Write for a reader who cannot see your source articles. Never refer to 'the headlines', 'the coverage', 'the articles provided' or comment on what the sources do or don't contain. If the articles contain only weak or tangential signal for this region, write one short factual sentence about what is happening rather than explaining why you can't summarise.";
 
 const NEWS_TIMEOUT_MS = 4_000;
 const SUMMARY_TIMEOUT_MS = 8_000;
@@ -104,7 +104,10 @@ async function fetchRegionHeadlines(
   error: string | null;
 }> {
   const q = encodeURIComponent(query);
-  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=25&domains=${DOMAINS}`;
+  const from = new Date(Date.now() - 7 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=25&from=${from}&domains=${DOMAINS}`;
   try {
     const res = await fetchWithTimeout(
       url,
