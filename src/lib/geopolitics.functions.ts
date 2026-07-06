@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { weeklyExpiresAt } from "./cache-schedule";
 
 export type RegionHeadline = { title: string; url: string; source: string };
 
@@ -65,7 +66,6 @@ const DOMAINS =
 const SYSTEM_PROMPT =
   "You are a geopolitics analyst covering AI. Based on these recent headlines, write 2-3 sentences on this region's current AI positioning — national strategy, investment, chip policy, export controls, major deals or regulation. Maximum 3 sentences, roughly 60 words. This is a hard limit. Plain text only, no markdown, no asterisks, no bold. Ignore any headline that is not actually about this region; the search matches loosely, so you are the relevance filter. If the headlines cover multiple countries in the region, capture the overall regional picture. Be neutral and factual. Write for a reader who cannot see your source articles. Never refer to 'the headlines', 'the coverage', 'the articles provided' or comment on what the sources do or don't contain. Brief the reader directly on the region's AI positioning based on what the articles report. If the articles contain only weak or tangential signal for this region, write one short factual sentence about what is happening rather than explaining why you can't summarise — for example 'Recent developments centre on X' — and nothing more.";
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const NEWS_TIMEOUT_MS = 4_000;
 const SUMMARY_TIMEOUT_MS = 8_000;
 let cache: { payload: GeopoliticsPayload; expiresAt: number } | null = null;
@@ -297,7 +297,7 @@ export const getGeopolitics = createServerFn({ method: "GET" }).handler(
     if (inflight) return inflight;
     inflight = buildPayload()
       .then((payload) => {
-        cache = { payload, expiresAt: Date.now() + CACHE_TTL_MS };
+        cache = { payload, expiresAt: weeklyExpiresAt() };
         return payload;
       })
       .finally(() => {
