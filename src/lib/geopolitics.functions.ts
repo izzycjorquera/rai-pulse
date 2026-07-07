@@ -366,16 +366,34 @@ async function buildPayload(): Promise<GeopoliticsPayload> {
           error: error ?? "No recent headlines",
         };
       }
-      const summary =
-        anthropicKey &&
-        (await generateSummary(anthropicKey, region, headlines, descriptions));
+      const result = anthropicKey
+        ? await generateSummary(anthropicKey, region, headlines, descriptions)
+        : null;
+      if (!result) {
+        return {
+          code,
+          region,
+          summary: buildFallbackSummary(region, headlines),
+          summaryGenerated: false,
+          headlines,
+          error: "AI summary unavailable",
+        };
+      }
+      // Filter headlines to those Claude flagged as relevant. If it didn't
+      // return a valid list, fall back to showing all headlines.
+      const filteredHeadlines =
+        result.relevantIndexes === null
+          ? headlines
+          : result.relevantIndexes.map((i) => headlines[i]).filter(Boolean);
+      const displayHeadlines =
+        result.summary === NO_DEVELOPMENTS ? [] : filteredHeadlines;
       return {
         code,
         region,
-        summary: summary || buildFallbackSummary(region, headlines),
-        summaryGenerated: Boolean(summary),
-        headlines,
-        error: summary ? null : "AI summary unavailable",
+        summary: result.summary,
+        summaryGenerated: true,
+        headlines: displayHeadlines,
+        error: null,
       };
     }),
   );
