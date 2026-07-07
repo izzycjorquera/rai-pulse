@@ -253,7 +253,7 @@ async function buildPayload(): Promise<FeedPayload> {
     const from = new Date(Date.now() - 7 * 86_400_000)
       .toISOString()
       .slice(0, 10);
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=30&from=${from}&domains=${domains}`;
+    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
 
     const allowedDomains = domains.split(",");
     const isAllowedUrl = (articleUrl: string) => {
@@ -296,7 +296,7 @@ async function buildPayload(): Promise<FeedPayload> {
           seen.add(a.url);
           return true;
         })
-        .slice(0, 30)
+        .slice(0, 60)
         .map((a) => ({
           title: a.title as string,
           source: a.source.name ?? "Unknown",
