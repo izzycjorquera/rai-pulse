@@ -9,8 +9,19 @@ export type FeedArticle = {
   region?: "North America" | "Europe" | "Asia-Pacific" | "Rest of World";
 };
 
+export type RegionCode = "NA" | "EU" | "AP" | "RW";
+
+export type RegionalSection = {
+  code: RegionCode;
+  region: "North America" | "Europe" | "Asia-Pacific" | "Rest of World";
+  summary: string;
+  summaryGenerated: boolean;
+  articles: FeedArticle[];
+};
+
 export type FeedPayload = {
   articles: FeedArticle[];
+  regions: RegionalSection[];
   updatedAt: string;
   error: string | null;
 };
@@ -44,10 +55,27 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 8 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces.\n\nAssign each selected article to exactly one of these four regions, using these exact strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions (e.g. a US–EU agreement), assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nReturn only valid JSON: an array of objects with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "reason" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.';
+  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces.\n\nAssign each selected article to exactly one of these four regions, using these exact strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions (e.g. a US–EU agreement), assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nReturn only valid JSON: an array of objects with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "reason" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.';
+
+const REGION_SUMMARY_PROMPT =
+  "You are a neutral analyst writing for RAI Pulse, a weekly briefing on AI governance for enterprise readers. Given the numbered articles for one region, write a short summary of the week in that region for AI governance, regulation and AI geopolitics. Rules: 2-3 sentences of neutral analyst voice, no opinion, no markdown, no asterisks, no bold. Every claim must be supported by the provided articles — never add analysis from your own background knowledge. End with exactly one final sentence that begins with 'For enterprises:' spelling out one concrete implication for large enterprises. Do not refer to 'the articles', 'the headlines' or 'the coverage'. Return plain text only, no JSON, no preamble.";
+
+const REGION_ORDER: {
+  code: RegionCode;
+  region: RegionalSection["region"];
+}[] = [
+  { code: "NA", region: "North America" },
+  { code: "EU", region: "Europe" },
+  { code: "AP", region: "Asia-Pacific" },
+  { code: "RW", region: "Rest of World" },
+];
+
+const NO_DEVELOPMENTS =
+  "No significant developments in this region this week.";
 
 const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 12_000;
+const SUMMARY_TIMEOUT_MS = 10_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
 let cache: { payload: FeedPayload; expiresAt: number } | null = null;
 let inflight: Promise<FeedPayload> | null = null;
@@ -143,7 +171,55 @@ async function curateWithClaude(
         const reason = (p.reason ?? p.why ?? "").toString();
         return { index: p.index, region, reason };
       })
-      .slice(0, 8);
+      .slice(0, 12);
+  } catch {
+    return null;
+  }
+}
+
+async function generateRegionSummary(
+  apiKey: string,
+  region: RegionalSection["region"],
+  articles: FeedArticle[],
+): Promise<string | null> {
+  const body = articles
+    .map((a, i) => `${i}. ${a.title}\n   Source: ${a.source}\n   ${a.summary}`)
+    .join("\n\n");
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 300,
+          system: REGION_SUMMARY_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: `Region: ${region}\n\nArticles:\n${body}`,
+            },
+          ],
+        }),
+      },
+      SUMMARY_TIMEOUT_MS,
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+    };
+    const text = json.content
+      ?.filter((c) => c.type === "text" && c.text)
+      .map((c) => c.text as string)
+      .join(" ")
+      .replace(/\*+/g, "")
+      .trim();
+    return text && text.length > 0 ? text : null;
   } catch {
     return null;
   }
@@ -155,6 +231,13 @@ async function buildPayload(): Promise<FeedPayload> {
   if (!key) {
     return {
       articles: [],
+      regions: REGION_ORDER.map(({ code, region }) => ({
+        code,
+        region,
+        summary: NO_DEVELOPMENTS,
+        summaryGenerated: false,
+        articles: [],
+      })),
       updatedAt: new Date().toISOString(),
       error: "Missing NEWSAPI_KEY",
     };
@@ -191,6 +274,13 @@ async function buildPayload(): Promise<FeedPayload> {
       if (!res.ok || json.status !== "ok" || !json.articles) {
         return {
           articles: [],
+          regions: REGION_ORDER.map(({ code, region }) => ({
+            code,
+            region,
+            summary: NO_DEVELOPMENTS,
+            summaryGenerated: false,
+            articles: [],
+          })),
           updatedAt: new Date().toISOString(),
           error: json.message ?? `HTTP ${res.status}`,
         };
@@ -231,20 +321,59 @@ async function buildPayload(): Promise<FeedPayload> {
             region: p.region,
           }));
         } else {
-          articles = candidates.slice(0, 8);
+          articles = candidates.slice(0, 12);
         }
       } else {
-        articles = candidates.slice(0, 8);
+        articles = candidates.slice(0, 12);
       }
+
+      // Group articles by region and generate one summary per region in parallel.
+      const regions: RegionalSection[] = await Promise.all(
+        REGION_ORDER.map(async ({ code, region }) => {
+          const regionArticles = articles.filter((a) => a.region === region);
+          if (regionArticles.length === 0 || !anthropicKey) {
+            return {
+              code,
+              region,
+              summary:
+                regionArticles.length === 0
+                  ? NO_DEVELOPMENTS
+                  : "Regional summary unavailable this week.",
+              summaryGenerated: false,
+              articles: regionArticles,
+            };
+          }
+          const summary = await generateRegionSummary(
+            anthropicKey,
+            region,
+            regionArticles,
+          );
+          return {
+            code,
+            region,
+            summary: summary ?? "Regional summary unavailable this week.",
+            summaryGenerated: summary != null,
+            articles: regionArticles,
+          };
+        }),
+      );
 
       return {
         articles,
+        regions,
         updatedAt: new Date().toISOString(),
         error: null,
       };
     } catch (e) {
       return {
         articles: [],
+        regions: REGION_ORDER.map(({ code, region }) => ({
+          code,
+          region,
+          summary: NO_DEVELOPMENTS,
+          summaryGenerated: false,
+          articles: [],
+        })),
         updatedAt: new Date().toISOString(),
         error: e instanceof Error ? e.message : "Failed to fetch news",
       };
