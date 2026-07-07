@@ -25,13 +25,13 @@ function AboutPage() {
   return (
     <SiteLayout
       eyebrow="About"
-      title="About RAI Pulse"
+      title="About Responsible AI Pulse"
       description="A weekly briefing on AI governance, geopolitics and responsible AI practice."
     >
       <div className="max-w-2xl space-y-5 text-base leading-relaxed text-foreground/90">
         <p>
           I work in responsible AI, and I built RAI Pulse to solve my own
-          problem: keeping up with AI governance news is easy — understanding
+          problem: keeping up with AI governance news is easy; understanding
           what it actually means for organisations is not.
         </p>
         <p>
@@ -51,10 +51,10 @@ function AboutPage() {
           I choose to cover and which implications I flag.
         </p>
         <p>
-          I also built this site myself, end to end, as an exercise in applied
-          AI — the summaries are AI-assisted, the judgment is mine.
+          I built this site myself as an exercise in applied AI. The summaries
+          are AI-assisted, the judgment is mine.
         </p>
-        <p className="pt-2 font-medium text-foreground">— Isabel</p>
+        <p className="pt-2 font-medium text-foreground">ISABEL JORQUERA</p>
       </div>
     </SiteLayout>
   );
