@@ -157,9 +157,9 @@ async function generateSummary(
   region: string,
   headlines: RegionHeadline[],
   descriptions: string[],
-): Promise<string | null> {
+): Promise<{ summary: string; relevantIndexes: number[] | null } | null> {
   const body = headlines
-    .map((h, i) => `- ${h.title}\n  ${descriptions[i] ?? ""}`.trim())
+    .map((h, i) => `${i}. ${h.title}\n   ${descriptions[i] ?? ""}`.trim())
     .join("\n");
   try {
     const res = await fetchWithTimeout(
@@ -173,7 +173,7 @@ async function generateSummary(
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 120,
+          max_tokens: 300,
           system: SYSTEM_PROMPT,
           messages: [
             {
@@ -189,15 +189,51 @@ async function generateSummary(
     const json = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>;
     };
-    const text = json.content
+    const raw = json.content
       ?.filter((c) => c.type === "text" && c.text)
       .map((c) => c.text as string)
       .join(" ")
-      .replace(/\*+/g, "")
       .trim();
-    if (!text || text.length === 0) return null;
-    if (META_COMMENTARY.test(text)) return NO_DEVELOPMENTS;
-    return text;
+    if (!raw) return null;
+    // Strip markdown fences and isolate the JSON object.
+    const stripped = raw
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/```$/g, "")
+      .trim();
+    const match = stripped.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[0]) as {
+          summary?: unknown;
+          relevantIndexes?: unknown;
+        };
+        const rawSummary =
+          typeof parsed.summary === "string"
+            ? parsed.summary.replace(/\*+/g, "").trim()
+            : "";
+        const indexes = Array.isArray(parsed.relevantIndexes)
+          ? parsed.relevantIndexes
+              .filter((n): n is number => typeof n === "number" && Number.isInteger(n))
+              .filter((n) => n >= 0 && n < headlines.length)
+          : null;
+        if (rawSummary) {
+          const summary = META_COMMENTARY.test(rawSummary)
+            ? NO_DEVELOPMENTS
+            : rawSummary;
+          const finalIndexes = summary === NO_DEVELOPMENTS ? [] : indexes;
+          return { summary, relevantIndexes: finalIndexes };
+        }
+      } catch {
+        // fall through to plain-text fallback
+      }
+    }
+    // Fallback: treat the response as plain text (previous behavior).
+    const text = raw.replace(/\*+/g, "").trim();
+    if (!text) return null;
+    if (META_COMMENTARY.test(text)) {
+      return { summary: NO_DEVELOPMENTS, relevantIndexes: [] };
+    }
+    return { summary: text, relevantIndexes: null };
   } catch {
     return null;
   }
