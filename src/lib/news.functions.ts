@@ -6,7 +6,7 @@ export type FeedArticle = {
   date: string;
   summary: string;
   url: string;
-  region?: "EU" | "US" | "China" | "Global";
+  region?: "North America" | "Europe" | "Asia-Pacific" | "Rest of World";
 };
 
 export type FeedPayload = {
@@ -44,7 +44,7 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  "You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 8 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces. For each selected article, assign one region: EU, US, China, or Global. Return only valid JSON: an array of objects with fields \"index\" (integer, referring to the numbered headline), \"region\" (one of EU, US, China, Global), and \"reason\" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.";
+  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 8 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces.\n\nAssign each selected article to exactly one of these four regions, using these exact strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions (e.g. a US–EU agreement), assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nReturn only valid JSON: an array of objects with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "reason" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.';
 
 const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 12_000;
@@ -124,7 +124,12 @@ async function curateWithClaude(
       why?: string;
     }>;
     if (!Array.isArray(parsed)) return null;
-    const allowedRegions = ["EU", "US", "China", "Global"] as const;
+    const allowedRegions = [
+      "North America",
+      "Europe",
+      "Asia-Pacific",
+      "Rest of World",
+    ] as const;
     return parsed
       .filter(
         (p) =>
@@ -133,7 +138,8 @@ async function curateWithClaude(
           p.index < candidates.length,
       )
       .map((p) => {
-        const region = allowedRegions.find((r) => r === p.region) ?? "Global";
+        const region =
+          allowedRegions.find((r) => r === p.region) ?? "Rest of World";
         const reason = (p.reason ?? p.why ?? "").toString();
         return { index: p.index, region, reason };
       })
