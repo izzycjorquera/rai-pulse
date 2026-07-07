@@ -3,8 +3,6 @@ import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { getGovernanceAngle } from "@/lib/governance.functions";
-import { getGeopolitics } from "@/lib/geopolitics.functions";
-import { GeopoliticsMap } from "@/components/geopolitics-map";
 
 const WEEK_MS = 7 * 24 * 60 * 60_000;
 
@@ -20,17 +18,10 @@ const governanceQueryOptions = queryOptions({
   staleTime: WEEK_MS,
 });
 
-const geopoliticsQueryOptions = queryOptions({
-  queryKey: ["geopolitics"],
-  queryFn: () => getGeopolitics(),
-  staleTime: WEEK_MS,
-});
-
 export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(feedQueryOptions);
     context.queryClient.prefetchQuery(governanceQueryOptions);
-    context.queryClient.ensureQueryData(geopoliticsQueryOptions);
   },
   component: Index,
 });
@@ -112,19 +103,11 @@ function UpdatedLabel({ updatedAt }: { updatedAt?: string }) {
 function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
   const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
-  const { data: geopolitics } = useSuspenseQuery(geopoliticsQueryOptions);
 
   // Global deduplication: no article URL may appear in more than one section.
-  // Priority order matches the on-page order: geopolitics → pulse → governance.
+  // Regional sections take priority over governance angle.
   const claimed = new Set<string>();
-  for (const r of geopolitics.regions) {
-    for (const h of r.headlines) claimed.add(h.url);
-  }
-  const articles = feed.articles.filter((a) => {
-    if (claimed.has(a.url)) return false;
-    claimed.add(a.url);
-    return true;
-  });
+  for (const a of feed.articles) claimed.add(a.url);
   const governanceArticles = (governance?.articles ?? []).filter((a) => {
     if (claimed.has(a.url)) return false;
     claimed.add(a.url);
@@ -134,81 +117,73 @@ function Index() {
     <SiteLayout
       eyebrow="Latest briefing"
       title="The week in AI governance"
-      description="Curated updates across regulation, enforcement, standards and responsible AI practice — filtered for practitioners."
+      description="The weekly briefing on responsible AI, from around the world."
     >
       <div className="space-y-14">
-        {/* Geopolitics — world picture first */}
-        <section>
-          <SectionHeading
-            eyebrow="Strategic analysis"
-            title="The World This Week"
-            description="AI power, policy and strategy — the geopolitical picture at a glance."
-          />
-          <UpdatedLabel updatedAt={geopolitics?.updatedAt} />
-          <GeopoliticsMap
-            regions={geopolitics.regions}
-            globalBrief={geopolitics.globalBrief}
-          />
-        </section>
-
-        {/* Regulation feed */}
+        {/* Regional briefing — four regions from the single curated pool */}
         <section>
           <SectionHeading
             eyebrow="Weekly briefing"
-            title="This Week's Pulse"
-            description="The signal from the week in AI governance — updated every Monday."
+            title="The world this week"
+            description="Four regions, one curated pool. Each briefing draws only on the articles listed beneath it."
           />
           <UpdatedLabel updatedAt={feed.updatedAt} />
-          {feed.error && articles.length === 0 && (
+          {feed.error && feed.articles.length === 0 && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
               Couldn't load live articles: {feed.error}
             </div>
           )}
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
-            {articles.map((a, i) => {
-              const featured = i === 0;
-              const tags = inferTags(`${a.title} ${a.summary}`);
-              return (
-                <li
-                  key={a.title}
-                  className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
-                    featured ? "lg:col-span-2 lg:row-span-2 lg:p-7" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground/80">{a.source}</span>
-                    <span>{a.date}</span>
-                  </div>
-                  <a
-                    href={a.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 block"
-                  >
-                    <h2
-                      className={`font-semibold leading-snug text-primary hover:underline ${
-                        featured ? "text-2xl sm:text-3xl" : "text-base"
-                      }`}
-                    >
-                      {a.title}
-                    </h2>
-                  </a>
-                  <p
-                    className={`mt-2 flex-1 leading-relaxed text-muted-foreground ${
-                      featured ? "text-base" : "text-sm"
-                    }`}
-                  >
-                    {a.summary}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {tags.map((t) => (
-                      <TagBadge key={t}>{t}</TagBadge>
-                    ))}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {feed.regions.map((r) => (
+              <article
+                key={r.code}
+                className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-card"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">
+                    {r.code}
+                  </span>
+                  {r.region}
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  {r.summary}
+                </p>
+                {r.articles.length > 0 && (
+                  <ul className="mt-4 space-y-3 border-t border-border/60 pt-4">
+                    {r.articles.map((a) => {
+                      const tags = inferTags(`${a.title} ${a.summary}`);
+                      return (
+                        <li key={a.url} className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span className="font-medium text-foreground/80">
+                              {a.source}
+                            </span>
+                            <span>{a.date}</span>
+                          </div>
+                          <a
+                            href={a.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold leading-snug text-primary hover:underline"
+                          >
+                            {a.title}
+                          </a>
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            {a.summary}
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {tags.map((t) => (
+                              <TagBadge key={t}>{t}</TagBadge>
+                            ))}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </article>
+            ))}
+          </div>
         </section>
 
         {/* Governance Angle */}
