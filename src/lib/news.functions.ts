@@ -55,7 +55,7 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces. Aim for regional balance: when qualifying articles exist for a region, select up to 3 for it, and never select more than 4 from any single region. Regional diversity matters more than marginal relevance differences — a solid Rest of World story beats a fifth North America story.\n\nAssign each selected article to exactly one of these four regions, using these exact strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions (e.g. a US–EU agreement), assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nReturn only valid JSON: an array of objects with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "reason" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.';
+  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces. Aim for regional balance: when qualifying articles exist for a region, select up to 3 for it, and never select more than 4 from any single region. Regional diversity matters more than marginal relevance differences — a solid Rest of World story beats a fifth North America story.\n\nAssign each selected article to exactly one of these four regions, using these exact strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions (e.g. a US–EU agreement), assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nReturn only valid JSON: an array of objects with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "reason" (one short sentence, 15 words maximum). No commentary outside the JSON.';
 
 const REGION_SUMMARY_PROMPT =
   "You are a neutral analyst writing for RAI Pulse, a weekly briefing on AI governance for enterprise readers. Given the numbered articles for one region, write a short summary of the week in that region for AI governance, regulation and AI geopolitics. Rules: 2-3 sentences of neutral analyst voice, no opinion, no markdown, no asterisks, no bold. Every claim must be supported by the provided articles — never add analysis from your own background knowledge. End with exactly one final sentence that begins with 'For enterprises:' spelling out one concrete implication for large enterprises. Do not refer to 'the articles', 'the headlines' or 'the coverage'. Return plain text only, no JSON, no preamble.";
@@ -75,7 +75,7 @@ const NO_DEVELOPMENTS =
 const BRIEFING_UNAVAILABLE = "Briefing temporarily unavailable.";
 
 const NEWS_TIMEOUT_MS = 6_000;
-const CURATION_TIMEOUT_MS = 12_000;
+const CURATION_TIMEOUT_MS = 20_000;
 const SUMMARY_TIMEOUT_MS = 10_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
 let cache: { payload: FeedPayload; expiresAt: number } | null = null;
@@ -127,14 +127,17 @@ async function curateWithClaude(
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 800,
+          max_tokens: 2000,
           system: CURATION_PROMPT,
           messages: [{ role: "user", content: list }],
         }),
       },
       CURATION_TIMEOUT_MS,
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.log("[news] Claude curation HTTP error:", res.status);
+      return null;
+    }
     const json = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>;
     };
@@ -144,15 +147,22 @@ async function curateWithClaude(
         .map((c) => c.text as string)
         .join(" ")
         .trim() ?? "";
+    console.log("[news] Claude raw response:", text);
     const match = text.match(/\[[\s\S]*\]/);
-    if (!match) return null;
+    if (!match) {
+      console.log("[news] Claude response had no JSON array match");
+      return null;
+    }
     const parsed = JSON.parse(match[0]) as Array<{
       index: number;
       region?: string;
       reason?: string;
       why?: string;
     }>;
-    if (!Array.isArray(parsed)) return null;
+    if (!Array.isArray(parsed)) {
+      console.log("[news] Claude parsed response was not an array:", parsed);
+      return null;
+    }
     const allowedRegions = [
       "North America",
       "Europe",
@@ -173,7 +183,8 @@ async function curateWithClaude(
         return { index: p.index, region, reason };
       })
       .slice(0, 12);
-  } catch {
+  } catch (err) {
+    console.log("[news] Claude curation error:", err);
     return null;
   }
 }
@@ -338,7 +349,18 @@ async function buildPayload(): Promise<FeedPayload> {
             region: p.region,
           }));
         } else {
-          articles = candidates.slice(0, 12);
+          return {
+            articles: [],
+            regions: REGION_ORDER.map(({ code, region }) => ({
+              code,
+              region,
+              summary: BRIEFING_UNAVAILABLE,
+              summaryGenerated: false,
+              articles: [],
+            })),
+            updatedAt: new Date().toISOString(),
+            error: "Curation failed",
+          };
         }
       } else {
         articles = candidates.slice(0, 12);
