@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 const NAV = [
-  { to: "/", label: "Feed" },
-  { to: "/themes", label: "Themes" },
+  { to: "/", label: "This Week" },
+  { to: "/read", label: "Read of the Week" },
   { to: "/radar", label: "Radar" },
   { to: "/about", label: "About" },
 ] as const;

@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
-import { getGovernanceAngle } from "@/lib/governance.functions";
 
 const WEEK_MS = 7 * 24 * 60 * 60_000;
 
@@ -12,16 +11,9 @@ const feedQueryOptions = queryOptions({
   staleTime: WEEK_MS,
 });
 
-const governanceQueryOptions = queryOptions({
-  queryKey: ["governance-angle"],
-  queryFn: () => getGovernanceAngle(),
-  staleTime: WEEK_MS,
-});
-
 export const Route = createFileRoute("/")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(feedQueryOptions);
-    context.queryClient.prefetchQuery(governanceQueryOptions);
   },
   component: Index,
 });
@@ -40,20 +32,6 @@ function inferTags(text: string): string[] {
   if (tags.length === 0) tags.push("AI Regulation");
   return tags.slice(0, 2);
 }
-
-const READ_OF_THE_WEEK = {
-  title: "Frontier AI Regulation: Managing Emerging Risks to Public Safety",
-  author: "MIT Future of Life & Legal Priorities",
-  type: "Paper",
-  summary:
-    "This paper compares regulatory instruments for frontier models — export controls, compute thresholds, safety evaluations and liability regimes — and argues that ex-ante evaluation gates are the most adaptable tool when capabilities are uncertain.",
-  sentences: [
-    "It draws on case studies from biosafety, aviation and nuclear governance to show how safety cases can be formalised without over-specifying technical details.",
-    "The authors propose a tiered system where model providers must submit safety evaluations before large-scale deployment, with independent audits triggered by compute thresholds.",
-    "The relevance for RAI practitioners is that it bridges technical risk assessment and legal accountability, making it a useful reference for anyone writing policy memos or model cards.",
-  ],
-  whyItMatters: "Bridges safety and law",
-};
 
 function SectionHeading({
   eyebrow,
@@ -100,189 +78,98 @@ function UpdatedLabel({ updatedAt }: { updatedAt?: string }) {
   );
 }
 
+const REGION_CODE: Record<string, string> = {
+  "North America": "NA",
+  Europe: "EU",
+  "Asia-Pacific": "AP",
+  "Rest of World": "RW",
+};
+
 function Index() {
   const { data: feed } = useSuspenseQuery(feedQueryOptions);
-  const { data: governance, isLoading: governanceLoading } = useQuery(governanceQueryOptions);
-
-  // Global deduplication: no article URL may appear in more than one section.
-  // Regional sections take priority over governance angle.
-  const claimed = new Set<string>();
-  for (const a of feed.articles) claimed.add(a.url);
-  const governanceArticles = (governance?.articles ?? []).filter((a) => {
-    if (claimed.has(a.url)) return false;
-    claimed.add(a.url);
-    return true;
-  });
+  const unavailable = !!feed.error && feed.articles.length === 0;
   return (
     <SiteLayout
       eyebrow="Latest briefing"
-      title="The week in AI governance"
+      title="This week in AI governance"
       description="The weekly briefing on responsible AI, from around the world."
     >
       <div className="space-y-14">
-        {/* Regional briefing — four regions from the single curated pool */}
         <section>
           <SectionHeading
-            eyebrow="Weekly briefing"
-            title="The world this week"
-            description="Four regions, one curated pool. Each briefing draws only on the articles listed beneath it."
+            eyebrow="This week"
+            title="The stories that matter"
+            description="The 8–10 most significant responsible-AI stories of the week, ranked by significance for enterprise readers."
           />
           <UpdatedLabel updatedAt={feed.updatedAt} />
-          {feed.error && feed.articles.length === 0 && (
+          {unavailable && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-              Couldn't load live articles: {feed.error}
+              Briefing temporarily unavailable.
             </div>
           )}
-          <div className="grid gap-5 sm:grid-cols-2">
-            {feed.regions.map((r) => (
-              <article
-                key={r.code}
-                className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-card"
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">
-                    {r.code}
-                  </span>
-                  {r.region}
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  {r.summary}
-                </p>
-                {r.articles.length > 0 && (
-                  <ul className="mt-4 space-y-3 border-t border-border/60 pt-4">
-                    {r.articles.map((a) => {
-                      const tags = inferTags(`${a.title} ${a.summary}`);
-                      return (
-                        <li key={a.url} className="flex flex-col gap-1">
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span className="font-medium text-foreground/80">
-                              {a.source}
-                            </span>
-                            <span>{a.date}</span>
-                          </div>
-                          <a
-                            href={a.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-semibold leading-snug text-primary hover:underline"
-                          >
-                            {a.title}
-                          </a>
-                          <p className="text-xs leading-relaxed text-muted-foreground">
-                            {a.summary}
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-1.5">
-                            {tags.map((t) => (
-                              <TagBadge key={t}>{t}</TagBadge>
-                            ))}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Governance Angle */}
-        <section>
-          <SectionHeading
-            eyebrow="Reframe"
-            title="Governance angle"
-            description="Tech news seen through the lens of compliance, risk and accountability."
-          />
-          <UpdatedLabel updatedAt={governance?.updatedAt} />
-          {governance?.error && (governance.articles.length === 0) && (
-            <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-              Couldn't load governance angle: {governance.error}
-            </div>
+          {!unavailable && feed.intro && (
+            <p className="mb-6 max-w-3xl rounded-2xl border border-border bg-card/60 p-5 text-sm leading-relaxed text-foreground shadow-card">
+              {feed.intro}
+            </p>
           )}
-          {governanceLoading && !governance && (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <li
-                  key={i}
-                  className={`h-40 animate-pulse rounded-xl border border-border bg-card shadow-card ${
-                    i === 0 ? "lg:col-span-2" : ""
-                  }`}
-                />
-              ))}
-            </ul>
-          )}
-          {governance && governanceArticles.length > 0 && (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-flow-dense">
-              {governanceArticles.map((item, i) => (
-                <li
-                  key={item.url}
-                  className={`group flex flex-col rounded-xl border border-border bg-card p-5 shadow-card transition-colors hover:border-primary/50 ${
-                    i === 0 ? "lg:col-span-2" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground/80">{item.source}</span>
-                    <span>{item.date}</span>
-                  </div>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 block"
+          {!unavailable && (
+            <ol className="space-y-4">
+              {feed.articles.map((a, i) => {
+                const tags = inferTags(`${a.title} ${a.summary}`);
+                const code = a.region ? REGION_CODE[a.region] : undefined;
+                return (
+                  <li
+                    key={a.url}
+                    className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-card"
                   >
-                    <h3 className="text-base font-semibold leading-snug text-primary hover:underline">
-                      {item.title}
-                    </h3>
-                  </a>
-                  <div className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/80">
-                    {item.takeGenerated ? "Governance take" : "Article summary"}
-                  </div>
-                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
-                    {item.take}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                    <div className="hidden shrink-0 pt-0.5 text-2xl font-semibold tabular-nums text-primary/70 sm:block">
+                      {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                        <span className="font-medium text-foreground/80">
+                          {a.source}
+                        </span>
+                        <span className="text-border">·</span>
+                        <span>{a.date}</span>
+                        {a.region && (
+                          <>
+                            <span className="text-border">·</span>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              {code && (
+                                <span className="font-bold">{code}</span>
+                              )}
+                              <span>{a.region}</span>
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-base font-semibold leading-snug text-primary hover:underline"
+                      >
+                        {a.title}
+                      </a>
+                      {a.enterpriseImplication && (
+                        <p className="mt-2 text-sm leading-relaxed text-foreground">
+                          {a.enterpriseImplication}
+                        </p>
+                      )}
+                      {tags.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {tags.map((t) => (
+                            <TagBadge key={t}>{t}</TagBadge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
           )}
-        </section>
-
-        {/* Read of the Week */}
-        <section>
-          <SectionHeading
-            eyebrow="Deep dive"
-            title="Read of the week"
-            description="One paper or book worth your time, with a three-sentence digest."
-          />
-          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 p-6 shadow-card sm:p-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/80 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {READ_OF_THE_WEEK.type}
-              </div>
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{READ_OF_THE_WEEK.title}</span>
-                  <span className="text-border">·</span>
-                  <span>{READ_OF_THE_WEEK.author}</span>
-                </div>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  {READ_OF_THE_WEEK.summary}
-                </p>
-                <ul className="mt-4 space-y-2">
-                  {READ_OF_THE_WEEK.sentences.map((s, i) => (
-                    <li key={i} className="flex gap-3 text-sm leading-relaxed text-foreground">
-                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                      <span>{s}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-5">
-                  <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    Why it matters: {READ_OF_THE_WEEK.whyItMatters}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
       </div>
     </SiteLayout>
