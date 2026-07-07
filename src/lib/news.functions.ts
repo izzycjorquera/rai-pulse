@@ -218,6 +218,13 @@ async function buildPayload(): Promise<FeedPayload> {
       if (anthropicKey && candidates.length > 0) {
         const picks = await curateWithClaude(anthropicKey, candidates);
         if (picks && picks.length > 0) {
+          console.log(
+            `[news] Claude selected ${picks.length} articles:`,
+            picks.map((p) => ({
+              region: p.region,
+              title: candidates[p.index]?.title,
+            })),
+          );
           articles = picks.map((p) => ({
             ...candidates[p.index],
             summary: p.reason.trim() || candidates[p.index].summary,
