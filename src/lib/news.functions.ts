@@ -72,6 +72,7 @@ const REGION_ORDER: {
 
 const NO_DEVELOPMENTS =
   "No significant developments in this region this week.";
+const BRIEFING_UNAVAILABLE = "Briefing temporarily unavailable.";
 
 const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 12_000;
@@ -234,7 +235,7 @@ async function buildPayload(): Promise<FeedPayload> {
       regions: REGION_ORDER.map(({ code, region }) => ({
         code,
         region,
-        summary: NO_DEVELOPMENTS,
+        summary: BRIEFING_UNAVAILABLE,
         summaryGenerated: false,
         articles: [],
       })),
@@ -245,10 +246,10 @@ async function buildPayload(): Promise<FeedPayload> {
 
     // Stage 1: broad fetch. Keep the query intentionally wide — Claude filters.
     const q = encodeURIComponent(
-      '"AI regulation" OR "artificial intelligence policy" OR "AI governance"',
+      '(AI OR "artificial intelligence") AND (regulation OR governance OR policy OR regulator OR lawmakers OR "export controls" OR compliance OR oversight)',
     );
     const domains =
-      "bbc.co.uk,reuters.com,ft.com,politico.eu,theverge.com,wired.com,technologyreview.com,theguardian.com";
+      "bbc.co.uk,reuters.com,ft.com,politico.eu,politico.com,theverge.com,wired.com,technologyreview.com,theguardian.com,apnews.com,euractiv.com,euronews.com,dw.com,scmp.com,techcrunch.com,axios.com";
     const from = new Date(Date.now() - 7 * 86_400_000)
       .toISOString()
       .slice(0, 10);
@@ -277,7 +278,7 @@ async function buildPayload(): Promise<FeedPayload> {
           regions: REGION_ORDER.map(({ code, region }) => ({
             code,
             region,
-            summary: NO_DEVELOPMENTS,
+            summary: BRIEFING_UNAVAILABLE,
             summaryGenerated: false,
             articles: [],
           })),
@@ -303,6 +304,22 @@ async function buildPayload(): Promise<FeedPayload> {
           summary: a.description as string,
           url: a.url,
         }));
+      console.log("[news] candidates after filter:", candidates.length);
+
+      if (candidates.length === 0) {
+        return {
+          articles: [],
+          regions: REGION_ORDER.map(({ code, region }) => ({
+            code,
+            region,
+            summary: BRIEFING_UNAVAILABLE,
+            summaryGenerated: false,
+            articles: [],
+          })),
+          updatedAt: new Date().toISOString(),
+          error: "No candidates after filter",
+        };
+      }
 
       let articles: FeedArticle[];
       if (anthropicKey && candidates.length > 0) {
@@ -370,7 +387,7 @@ async function buildPayload(): Promise<FeedPayload> {
         regions: REGION_ORDER.map(({ code, region }) => ({
           code,
           region,
-          summary: NO_DEVELOPMENTS,
+          summary: BRIEFING_UNAVAILABLE,
           summaryGenerated: false,
           articles: [],
         })),
