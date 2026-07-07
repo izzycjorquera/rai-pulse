@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { weeklyExpiresAt } from "./cache-schedule";
 
 export type FeedArticle = {
   title: string;
@@ -7,6 +6,7 @@ export type FeedArticle = {
   date: string;
   summary: string;
   url: string;
+  region?: "EU" | "US" | "China" | "Global";
 };
 
 export type FeedPayload = {
@@ -44,10 +44,11 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  "This section covers AI REGULATION ONLY: laws, enforcement actions, regulator consultations, standards bodies, official guidance. EXCLUDE geopolitics and national-strategy stories (chips, export controls, sovereign compute, international competition) and EXCLUDE individual company product launches or corporate deployments. From these articles, select the 2-3 most consequential regulation stories of the week for AI governance practitioners and briefly say why each matters. Plain text only, no markdown, no asterisks, no bold. Respond with ONLY a JSON array like [{\"index\":0,\"why\":\"...\"}]. The 'why' field must be one short sentence, roughly 25 words maximum. Do not include any commentary outside the JSON.";
+  "You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 8 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces. For each selected article, assign one region: EU, US, China, or Global. Return only valid JSON: an array of objects with fields \"index\" (integer, referring to the numbered headline), \"region\" (one of EU, US, China, Global), and \"reason\" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.";
 
 const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 12_000;
+const DAY_MS = 24 * 60 * 60 * 1_000;
 let cache: { payload: FeedPayload; expiresAt: number } | null = null;
 let inflight: Promise<FeedPayload> | null = null;
 
@@ -76,7 +77,9 @@ type Candidate = {
 async function curateWithClaude(
   apiKey: string,
   candidates: Candidate[],
-): Promise<{ index: number; why: string }[] | null> {
+): Promise<
+  { index: number; region: FeedArticle["region"]; reason: string }[] | null
+> {
   const list = candidates
     .map(
       (c, i) =>
@@ -95,7 +98,7 @@ async function curateWithClaude(
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 400,
+          max_tokens: 800,
           system: CURATION_PROMPT,
           messages: [{ role: "user", content: list }],
         }),
@@ -116,18 +119,25 @@ async function curateWithClaude(
     if (!match) return null;
     const parsed = JSON.parse(match[0]) as Array<{
       index: number;
-      why: string;
+      region?: string;
+      reason?: string;
+      why?: string;
     }>;
     if (!Array.isArray(parsed)) return null;
+    const allowedRegions = ["EU", "US", "China", "Global"] as const;
     return parsed
       .filter(
         (p) =>
           typeof p.index === "number" &&
-          typeof p.why === "string" &&
           p.index >= 0 &&
           p.index < candidates.length,
       )
-      .slice(0, 3);
+      .map((p) => {
+        const region = allowedRegions.find((r) => r === p.region) ?? "Global";
+        const reason = (p.reason ?? p.why ?? "").toString();
+        return { index: p.index, region, reason };
+      })
+      .slice(0, 8);
   } catch {
     return null;
   }
@@ -144,15 +154,16 @@ async function buildPayload(): Promise<FeedPayload> {
     };
   }
 
+    // Stage 1: broad fetch. Keep the query intentionally wide — Claude filters.
     const q = encodeURIComponent(
-      '"AI regulation" OR "EU AI Act" OR "AI enforcement" OR "AI liability" OR "responsible AI" OR "AI standards"',
+      '"AI regulation" OR "artificial intelligence policy" OR "AI governance"',
     );
     const domains =
       "bbc.co.uk,reuters.com,ft.com,politico.eu,theverge.com,wired.com,technologyreview.com,theguardian.com";
     const from = new Date(Date.now() - 7 * 86_400_000)
       .toISOString()
       .slice(0, 10);
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=20&from=${from}&domains=${domains}`;
+    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=30&from=${from}&domains=${domains}`;
 
     const allowedDomains = domains.split(",");
     const isAllowedUrl = (articleUrl: string) => {
@@ -178,11 +189,17 @@ async function buildPayload(): Promise<FeedPayload> {
           error: json.message ?? `HTTP ${res.status}`,
         };
       }
+      // Deduplicate by URL before anything else.
+      const seen = new Set<string>();
       const candidates: Candidate[] = json.articles
-        .filter(
-          (a) => a.title && a.description && a.url && isAllowedUrl(a.url),
-        )
-        .slice(0, 15)
+        .filter((a) => {
+          if (!a.title || !a.description || !a.url) return false;
+          if (!isAllowedUrl(a.url)) return false;
+          if (seen.has(a.url)) return false;
+          seen.add(a.url);
+          return true;
+        })
+        .slice(0, 30)
         .map((a) => ({
           title: a.title as string,
           source: a.source.name ?? "Unknown",
@@ -197,13 +214,14 @@ async function buildPayload(): Promise<FeedPayload> {
         if (picks && picks.length > 0) {
           articles = picks.map((p) => ({
             ...candidates[p.index],
-            summary: p.why.trim(),
+            summary: p.reason.trim() || candidates[p.index].summary,
+            region: p.region,
           }));
         } else {
-          articles = candidates.slice(0, 3);
+          articles = candidates.slice(0, 8);
         }
       } else {
-        articles = candidates.slice(0, 3);
+        articles = candidates.slice(0, 8);
       }
 
       return {
@@ -228,7 +246,7 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
     inflight = buildPayload()
       .then((payload) => {
         if (payload.error === null || payload.articles.length > 0) {
-          cache = { payload, expiresAt: weeklyExpiresAt() };
+          cache = { payload, expiresAt: Date.now() + DAY_MS };
         }
         return payload;
       })
