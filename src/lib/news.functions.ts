@@ -55,7 +55,7 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces.\n\nAssign each selected article to exactly one of these four regions, using these exact strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions (e.g. a US–EU agreement), assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nReturn only valid JSON: an array of objects with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "reason" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.';
+  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most relevant to AI governance, regulation, or AI geopolitics. Discard product launches, stock news, and opinion pieces. Aim for regional balance: when qualifying articles exist for a region, select up to 3 for it, and never select more than 4 from any single region. Regional diversity matters more than marginal relevance differences — a solid Rest of World story beats a fifth North America story.\n\nAssign each selected article to exactly one of these four regions, using these exact strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions (e.g. a US–EU agreement), assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nReturn only valid JSON: an array of objects with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "reason" (one short sentence explaining why it was selected, roughly 25 words maximum). No commentary outside the JSON.';
 
 const REGION_SUMMARY_PROMPT =
   "You are a neutral analyst writing for RAI Pulse, a weekly briefing on AI governance for enterprise readers. Given the numbered articles for one region, write a short summary of the week in that region for AI governance, regulation and AI geopolitics. Rules: 2-3 sentences of neutral analyst voice, no opinion, no markdown, no asterisks, no bold. Every claim must be supported by the provided articles — never add analysis from your own background knowledge. End with exactly one final sentence that begins with 'For enterprises:' spelling out one concrete implication for large enterprises. Do not refer to 'the articles', 'the headlines' or 'the coverage'. Return plain text only, no JSON, no preamble.";
@@ -253,7 +253,7 @@ async function buildPayload(): Promise<FeedPayload> {
     const from = new Date(Date.now() - 7 * 86_400_000)
       .toISOString()
       .slice(0, 10);
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=30&from=${from}&domains=${domains}`;
+    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
 
     const allowedDomains = domains.split(",");
     const isAllowedUrl = (articleUrl: string) => {
@@ -296,7 +296,7 @@ async function buildPayload(): Promise<FeedPayload> {
           seen.add(a.url);
           return true;
         })
-        .slice(0, 30)
+        .slice(0, 60)
         .map((a) => ({
           title: a.title as string,
           source: a.source.name ?? "Unknown",
