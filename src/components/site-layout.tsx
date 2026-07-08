@@ -29,7 +29,7 @@ export function SiteLayout({
               <span className="h-2 w-2 rounded-full bg-primary" />
             </span>
             <span className="font-display text-lg font-bold tracking-tight leading-none">
-              RAI Pulse
+              Responsible AI Pulse
             </span>
             <span className="hidden font-sans text-[11px] uppercase tracking-[0.14em] text-masthead-foreground/60 sm:inline">
               AI governance briefing
