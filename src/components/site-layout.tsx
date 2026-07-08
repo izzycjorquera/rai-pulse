@@ -26,12 +26,12 @@ export function SiteLayout({
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 py-6 sm:py-8">
           <Link
             to="/"
-            className="flex items-center justify-center gap-5 sm:gap-8"
+            className="wordmark inline-flex items-center justify-center gap-5 sm:gap-8"
             aria-label="Responsible AI Pulse — home"
           >
-            <span className="wordmark">Responsible</span>
+            <span>Responsible</span>
             <LogoSlot />
-            <span className="wordmark">Pulse</span>
+            <span>Pulse</span>
           </Link>
           <nav className="flex flex-wrap items-center justify-center gap-1 font-sans text-sm">
             {NAV.map((item) => (
