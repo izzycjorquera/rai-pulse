@@ -37,13 +37,13 @@ function AboutPage() {
         </p>
         <p>
           Most coverage stops at “a new regulation passed.” I'm interested in
-          the layer underneath: how diverging rules across the EU, US, China,
-          and beyond create real strategic and compliance questions for large
+          the layer underneath: how diverging rules across regional blocs
+          create real strategic and compliance questions for large
           enterprises, and why geopolitics is becoming impossible to separate
           from responsible AI practice.
         </p>
         <p>
-          My interest sits at the intersection of international relations, AI,
+          My interest sits at the intersection of AI, International Relations{" "}
           and ethics. RAI Pulse is where I put that lens to work; a weekly
           briefing that tracks what's happening and translates why it matters.
         </p>
