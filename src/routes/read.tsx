@@ -9,6 +9,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import { READS, type ReadItem, type ReadType } from "@/content/reads";
 
 export const Route = createFileRoute("/read")({
   head: () => ({
@@ -30,60 +31,22 @@ export const Route = createFileRoute("/read")({
   component: ReadOfTheWeekPage,
 });
 
-type ReadCard = {
-  type: string;
-  title: string;
-  author: string;
-  summary: string;
-  sentences: string[];
-  whyItMatters: string;
-  link?: { href: string; label: string };
+const TYPE_LABEL: Record<ReadType, string> = {
+  paper: "Paper",
+  book: "Book",
+  listen: "Listen",
 };
 
-const CARDS: ReadCard[] = [
-  {
-    type: "Paper",
-    title: "Frontier AI Regulation: Managing Emerging Risks to Public Safety",
-    author: "MIT Future of Life & Legal Priorities",
-    summary:
-      "This paper compares regulatory instruments for frontier models — export controls, compute thresholds, safety evaluations and liability regimes — and argues that ex-ante evaluation gates are the most adaptable tool when capabilities are uncertain.",
-    sentences: [
-      "It draws on case studies from biosafety, aviation and nuclear governance to show how safety cases can be formalised without over-specifying technical details.",
-      "The authors propose a tiered system where model providers must submit safety evaluations before large-scale deployment, with independent audits triggered by compute thresholds.",
-      "The relevance for RAI practitioners is that it bridges technical risk assessment and legal accountability, making it a useful reference for anyone writing policy memos or model cards.",
-    ],
-    whyItMatters: "Bridges safety and law",
-  },
-  {
-    type: "Listen",
-    title: "[Episode title — replace me]",
-    author: "[Podcast name — replace me]",
-    summary:
-      "[Recommended listen: one-line why this episode matters for responsible AI practitioners — replace with your own copy.]",
-    sentences: [
-      "[Optional second sentence with a specific idea or guest to flag.]",
-    ],
-    whyItMatters: "Recommended listen",
-    link: { href: "#", label: "Listen" },
-  },
-  {
-    type: "Book",
-    title: "[Book title — replace me]",
-    author: "[Author — replace me]",
-    summary:
-      "[One-paragraph digest of the book and why it's worth the shelf space for RAI practitioners.]",
-    sentences: [
-      "[Optional second sentence with the sharpest idea from the book.]",
-    ],
-    whyItMatters: "On the shelf",
-    link: { href: "#", label: "Find the book" },
-  },
-];
+const LINK_LABEL: Record<ReadType, string> = {
+  paper: "Read the paper",
+  book: "Find the book",
+  listen: "Listen",
+};
 
 function ReadOfTheWeekPage() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(CARDS.length);
+  const [count, setCount] = useState(READS.length);
 
   useEffect(() => {
     if (!api) return;
@@ -104,52 +67,9 @@ function ReadOfTheWeekPage() {
     >
       <Carousel setApi={setApi} opts={{ align: "start", loop: false }}>
         <CarouselContent>
-          {CARDS.map((card, i) => (
+          {READS.map((item, i) => (
             <CarouselItem key={i}>
-              <article className="rounded-2xl border border-primary/30 bg-card p-6 shadow-card sm:p-8">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-                  <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/80 font-sans text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    {card.type}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      <h2 className="font-serif text-xl font-semibold text-foreground">
-                        {card.title}
-                      </h2>
-                    </div>
-                    <p className="mt-1 font-sans text-sm text-muted-foreground">
-                      {card.author}
-                    </p>
-                    <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                      {card.summary}
-                    </p>
-                    <ul className="mt-4 space-y-2">
-                      {card.sentences.map((s, j) => (
-                        <li
-                          key={j}
-                          className="flex gap-3 text-sm leading-relaxed text-foreground"
-                        >
-                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                          <span>{s}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-5 flex flex-wrap items-center gap-3">
-                      <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                        Why it matters: {card.whyItMatters}
-                      </span>
-                      {card.link && (
-                        <a
-                          href={card.link.href}
-                          className="font-sans text-xs font-medium uppercase tracking-[0.12em] text-primary hover:underline"
-                        >
-                          {card.link.label} →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </article>
+              <ReadCard item={item} />
             </CarouselItem>
           ))}
         </CarouselContent>
@@ -175,5 +95,100 @@ function ReadOfTheWeekPage() {
         </div>
       </Carousel>
     </SiteLayout>
+  );
+}
+
+function ReadCard({ item }: { item: ReadItem }) {
+  return (
+    <article className="rounded-2xl border border-border bg-card p-5 shadow-card sm:p-8">
+      <div className="flex flex-col gap-6 sm:gap-8 md:flex-row md:items-start">
+        <div className="md:w-1/3 md:shrink-0">
+          <Cover item={item} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 font-sans text-[10.5px] font-semibold uppercase tracking-[0.16em] text-primary">
+            {TYPE_LABEL[item.type]}
+          </span>
+          <h2 className="mt-3 font-serif text-2xl font-semibold leading-tight text-foreground sm:text-[26px]">
+            {item.title}
+          </h2>
+          <p className="mt-2 caption text-muted-foreground">
+            {item.authorOrShow} · {item.year}
+          </p>
+          <p className="mt-4 text-sm leading-relaxed text-foreground/90">
+            {item.digest}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <span
+              className="inline-flex items-center rounded-full px-3 py-1 font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal"
+              style={{ backgroundColor: "var(--lime)" }}
+            >
+              Why it matters: {item.whyItMatters}
+            </span>
+            <a
+              href={item.link}
+              target={item.link.startsWith("http") ? "_blank" : undefined}
+              rel={item.link.startsWith("http") ? "noopener noreferrer" : undefined}
+              className="font-sans text-xs font-semibold uppercase tracking-[0.14em] text-primary hover:underline"
+            >
+              {LINK_LABEL[item.type]} →
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function Cover({ item }: { item: ReadItem }) {
+  const [imgOk, setImgOk] = useState(true);
+  const showFallback = !item.imageUrl || !imgOk;
+  return (
+    <div
+      className="mx-auto aspect-[2/3] w-full max-w-[240px] overflow-hidden rounded-xl shadow-[0_18px_40px_-20px_rgba(31,29,26,0.45)] md:mx-0"
+      style={{ transform: "rotate(-2deg)" }}
+    >
+      {showFallback ? (
+        <TypographicCover item={item} />
+      ) : (
+        <img
+          src={item.imageUrl}
+          alt={item.title}
+          className="h-full w-full object-cover"
+          onError={() => setImgOk(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function TypographicCover({ item }: { item: ReadItem }) {
+  return (
+    <div
+      className="relative flex h-full w-full flex-col justify-between p-4 sm:p-5"
+      style={{ backgroundColor: "var(--navy)", color: "var(--cream)" }}
+    >
+      <span
+        className="self-start rounded-full px-2 py-0.5 font-sans text-[9.5px] font-semibold uppercase tracking-[0.18em]"
+        style={{ backgroundColor: "color-mix(in oklab, var(--cream) 12%, transparent)", color: "var(--cream)" }}
+      >
+        {TYPE_LABEL[item.type]}
+      </span>
+      <div>
+        <h3
+          className="font-display font-bold leading-[1.05]"
+          style={{ fontSize: "clamp(1.05rem, 2.2vw, 1.4rem)" }}
+        >
+          {item.title}
+        </h3>
+        <div
+          className="mt-3 h-[2px] w-14"
+          style={{ backgroundColor: "var(--teal)" }}
+        />
+        <p className="mt-3 font-sans text-[10.5px] uppercase tracking-[0.14em] text-cream/70" style={{ color: "color-mix(in oklab, var(--cream) 70%, transparent)" }}>
+          {item.authorOrShow} · {item.year}
+        </p>
+      </div>
+    </div>
   );
 }
