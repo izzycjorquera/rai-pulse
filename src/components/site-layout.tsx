@@ -95,20 +95,16 @@ export function TagBadge({ children }: { children: ReactNode }) {
 function LogoSlot() {
   const [hasLogo, setHasLogo] = useState(true);
   return (
-    <span
-      className="flex h-12 w-12 shrink-0 items-center justify-center sm:h-16 sm:w-16"
-      aria-hidden={!hasLogo}
-    >
-      {hasLogo ? (
+    <span className="relative inline-flex items-center justify-center">
+      {hasLogo && (
         <img
           src="/masthead-logo.png"
-          alt="Responsible AI Pulse logo"
-          className="h-full w-full object-contain"
+          alt=""
+          className="absolute h-[1.6em] w-auto object-contain opacity-85"
           onError={() => setHasLogo(false)}
         />
-      ) : (
-        <span className="wordmark">AI</span>
       )}
+      <span className="relative z-10">AI</span>
     </span>
   );
 }
