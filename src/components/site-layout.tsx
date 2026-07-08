@@ -26,12 +26,12 @@ export function SiteLayout({
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 py-6 sm:py-8">
           <Link
             to="/"
-            className="flex items-center justify-center gap-5 sm:gap-8"
+            className="wordmark inline-flex items-center justify-center gap-5 sm:gap-8"
             aria-label="Responsible AI Pulse — home"
           >
-            <span className="wordmark">Responsible</span>
+            <span>Responsible</span>
             <LogoSlot />
-            <span className="wordmark">Pulse</span>
+            <span>Pulse</span>
           </Link>
           <nav className="flex flex-wrap items-center justify-center gap-1 font-sans text-sm">
             {NAV.map((item) => (
@@ -95,20 +95,16 @@ export function TagBadge({ children }: { children: ReactNode }) {
 function LogoSlot() {
   const [hasLogo, setHasLogo] = useState(true);
   return (
-    <span
-      className="flex h-12 w-12 shrink-0 items-center justify-center sm:h-16 sm:w-16"
-      aria-hidden={!hasLogo}
-    >
-      {hasLogo ? (
+    <span className="relative inline-flex items-center justify-center">
+      {hasLogo && (
         <img
           src="/masthead-logo.png"
-          alt="Responsible AI Pulse logo"
-          className="h-full w-full object-contain"
+          alt=""
+          className="absolute h-[1.6em] w-auto object-contain opacity-85"
           onError={() => setHasLogo(false)}
         />
-      ) : (
-        <span className="wordmark">AI</span>
       )}
+      <span className="relative z-10">AI</span>
     </span>
   );
 }
