@@ -101,6 +101,7 @@ function LogoSlot() {
           src="/masthead-logo.png"
           alt=""
           className="absolute h-[1.6em] w-auto object-contain opacity-85"
+          style={{ aspectRatio: "auto" }}
           onError={() => setHasLogo(false)}
         />
       )}
