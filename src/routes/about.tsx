@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site-layout";
+import { Linkedin } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -55,6 +56,25 @@ function AboutPage() {
           are AI-assisted, the judgment is mine.
         </p>
         <p className="pt-2 font-medium text-foreground">ISABEL JORQUERA</p>
+
+        <a
+          href="https://www.linkedin.com/in/isabel-jorquera-33826b191/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group mt-8 flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-4 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md sm:w-fit sm:min-w-[320px]"
+        >
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Linkedin size={22} strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <p className="font-serif text-base font-semibold leading-tight text-foreground">
+              Connect on LinkedIn
+            </p>
+            <p className="mt-0.5 font-sans text-sm text-muted-foreground">
+              Isabel Jorquera · Responsible AI
+            </p>
+          </div>
+        </a>
       </div>
     </SiteLayout>
   );
