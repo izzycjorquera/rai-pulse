@@ -200,7 +200,7 @@ async function curateWithClaude(
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 2000,
+          max_tokens: 4000,
           system: CURATION_PROMPT,
           messages: [{ role: "user", content: list }],
         }),
@@ -227,49 +227,44 @@ async function curateWithClaude(
       return null;
     }
     const parsed = JSON.parse(match[0]) as Array<{
-      index: number;
-      region?: string;
-      implication?: string;
-      reason?: string;
-      country?: string;
-      lat?: number | null;
-      lon?: number | null;
-      topic?: string;
+      i?: number;
+      r?: string;
+      c?: string;
+      t?: string;
+      m?: string;
     }>;
     if (!Array.isArray(parsed)) {
       console.log("[news] Claude parsed response was not an array:", parsed);
       return null;
     }
-    const allowedRegions = [
-      "North America",
-      "Europe",
-      "Asia-Pacific",
-      "Rest of World",
-    ] as const;
     return parsed
       .filter(
         (p) =>
-          typeof p.index === "number" &&
-          p.index >= 0 &&
-          p.index < candidates.length,
+          typeof p.i === "number" &&
+          p.i >= 0 &&
+          p.i < candidates.length,
       )
       .map((p) => {
-        const region =
-          allowedRegions.find((r) => r === p.region) ?? "Rest of World";
-        const implication = (p.implication ?? p.reason ?? "").toString().trim();
+        const region = REGION_BY_CODE[(p.r ?? "").toUpperCase()] ?? "Rest of World";
+        const implication = (p.m ?? "").toString().trim();
         const country =
-          typeof p.country === "string" && p.country.trim().length > 0
-            ? p.country.trim()
+          typeof p.c === "string" && p.c.trim().length > 0
+            ? p.c.trim()
             : undefined;
-        const lat =
-          typeof p.lat === "number" && Number.isFinite(p.lat) ? p.lat : undefined;
-        const lon =
-          typeof p.lon === "number" && Number.isFinite(p.lon) ? p.lon : undefined;
+        const coords = country ? COUNTRY_COORDS[country] : undefined;
         const topic =
-          typeof p.topic === "string" && p.topic.trim().length > 0
-            ? p.topic.trim()
+          typeof p.t === "string" && p.t.trim().length > 0
+            ? p.t.trim()
             : undefined;
-        return { index: p.index, region, implication, country, lat, lon, topic };
+        return {
+          index: p.i as number,
+          region,
+          implication,
+          country,
+          lat: coords?.lat,
+          lon: coords?.lon,
+          topic,
+        };
       })
       .slice(0, 12);
   } catch (err) {
