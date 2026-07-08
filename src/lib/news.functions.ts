@@ -8,6 +8,9 @@ export type FeedArticle = {
   enterpriseImplication: string;
   url: string;
   region?: "North America" | "Europe" | "Asia-Pacific" | "Rest of World";
+  country?: string;
+  lat?: number;
+  lon?: number;
 };
 
 export type FeedPayload = {
@@ -46,7 +49,7 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 8-10 most significant stories of the week for responsible AI, ranked by significance for enterprise readers (most significant first). Discard product launches, stock news, and opinion pieces.\n\nFor each selected story, assign a region tag using exactly one of these strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions, assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nFor each story also write one sentence beginning "For enterprises:" stating the concrete implication for large enterprises (one short sentence, 20 words maximum).\n\nReturn only valid JSON: an array of objects, ordered by significance (most significant first), with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), and "implication" (the sentence starting with "For enterprises:"). No commentary outside the JSON.';
+  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 8-10 most significant stories of the week for responsible AI, ranked by significance for enterprise readers (most significant first). Discard product launches, stock news, and opinion pieces.\n\nFor each selected story, assign a region tag using exactly one of these strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions, assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nAlso pick the single most relevant country for the story as a "country" field: use the country\'s common English name (e.g. "United States", "United Kingdom", "China"), or the exact string "EU" for EU-wide stories that are not tied to one member state, or "Global" for genuinely multilateral stories with no single locus. Provide approximate latitude and longitude for that country\'s capital (for "EU" use Brussels; for "Global" omit lat/lon or set them to null) as numbers in decimal degrees.\n\nFor each story also write one sentence beginning "For enterprises:" stating the concrete implication for large enterprises (one short sentence, 20 words maximum).\n\nReturn only valid JSON: an array of objects, ordered by significance (most significant first), with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), "country" (string), "lat" (number or null), "lon" (number or null), and "implication" (the sentence starting with "For enterprises:"). No commentary outside the JSON.';
 
 const INTRO_PROMPT =
   "You are a neutral analyst writing for RAI Pulse, a weekly briefing on AI governance for enterprise readers. Given the numbered stories selected for this week, write a short intro paragraph synthesizing the overall picture of the week. Rules: 2-3 sentences, neutral analyst voice, no opinion, no markdown, no asterisks, no bold, no bullet points. Every claim must be supported by the provided stories. Do not refer to 'the articles', 'the headlines', 'the stories' or 'the coverage'. Return plain text only, no JSON, no preamble.";
@@ -86,7 +89,14 @@ async function curateWithClaude(
   apiKey: string,
   candidates: Candidate[],
 ): Promise<
-  { index: number; region: FeedArticle["region"]; implication: string }[] | null
+  {
+    index: number;
+    region: FeedArticle["region"];
+    implication: string;
+    country?: string;
+    lat?: number;
+    lon?: number;
+  }[] | null
 > {
   const list = candidates
     .map(
@@ -137,6 +147,9 @@ async function curateWithClaude(
       region?: string;
       implication?: string;
       reason?: string;
+      country?: string;
+      lat?: number | null;
+      lon?: number | null;
     }>;
     if (!Array.isArray(parsed)) {
       console.log("[news] Claude parsed response was not an array:", parsed);
@@ -159,7 +172,15 @@ async function curateWithClaude(
         const region =
           allowedRegions.find((r) => r === p.region) ?? "Rest of World";
         const implication = (p.implication ?? p.reason ?? "").toString().trim();
-        return { index: p.index, region, implication };
+        const country =
+          typeof p.country === "string" && p.country.trim().length > 0
+            ? p.country.trim()
+            : undefined;
+        const lat =
+          typeof p.lat === "number" && Number.isFinite(p.lat) ? p.lat : undefined;
+        const lon =
+          typeof p.lon === "number" && Number.isFinite(p.lon) ? p.lon : undefined;
+        return { index: p.index, region, implication, country, lat, lon };
       })
       .slice(0, 10);
   } catch (err) {
@@ -323,6 +344,9 @@ async function buildPayload(): Promise<FeedPayload> {
         ...candidates[p.index],
         enterpriseImplication: p.implication,
         region: p.region,
+        country: p.country,
+        lat: p.lat,
+        lon: p.lon,
       }));
 
       const intro = await generateIntro(anthropicKey, articles);
