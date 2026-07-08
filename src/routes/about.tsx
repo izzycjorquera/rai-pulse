@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site-layout";
+import { Linkedin } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
