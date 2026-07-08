@@ -128,7 +128,7 @@ function Index() {
                     key={a.url}
                     className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-card"
                   >
-                    <div className="hidden shrink-0 pt-0.5 text-2xl font-semibold tabular-nums text-primary/70 sm:block">
+                    <div className="font-display hidden shrink-0 pt-0.5 text-3xl font-bold tabular-nums text-accent sm:block" style={{ color: "var(--lime)" }}>
                       {String(i + 1).padStart(2, "0")}
                     </div>
                     <div className="min-w-0 flex-1">
