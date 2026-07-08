@@ -5,17 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * Editorial brand system.
+ * - Cream content area, navy masthead/footer band.
+ * - Teal primary accent, lime secondary accent (sparingly).
+ * - Playfair Display (titles), Lora (headers/card headlines), Inter (body).
  */
 
 @theme inline {
@@ -59,82 +52,67 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-masthead: var(--masthead);
+  --color-masthead-foreground: var(--masthead-foreground);
+  --color-lime: var(--lime);
   --shadow-card: var(--shadow-card);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-display: var(--font-display);
 }
 
 :root {
   --radius: 0.625rem;
-  /* Dark theme by default — near-black page, slate-grey cards, warm teal accent */
-  --background: oklch(0.1783 0.0128 270.6);
-  --foreground: oklch(0.96 0.005 270);
-  --card: oklch(0.2616 0.0296 267.48);
-  --card-foreground: oklch(0.96 0.005 270);
-  --popover: oklch(0.2616 0.0296 267.48);
-  --popover-foreground: oklch(0.96 0.005 270);
-  --primary: oklch(0.7845 0.1325 181.94);
-  --primary-foreground: oklch(0.14 0.02 270);
-  --secondary: oklch(0.23 0.025 270);
-  --secondary-foreground: oklch(0.96 0.005 270);
-  --muted: oklch(0.23 0.025 270);
-  --muted-foreground: oklch(0.68 0.02 270);
-  --accent: oklch(0.7845 0.1325 181.94);
-  --accent-foreground: oklch(0.14 0.02 270);
-  --destructive: oklch(0.6 0.22 25);
-  --destructive-foreground: oklch(0.98 0.005 250);
-  --border: oklch(0.32 0.02 270);
-  --input: oklch(0.32 0.02 270);
-  --ring: oklch(0.7845 0.1325 181.94);
-  --shadow-card: 0 1px 2px 0 color-mix(in oklab, oklch(0 0 0) 30%, transparent);
+  /* Editorial: cream page, navy band, teal accent, lime secondary */
+  --cream: #FAF7F2;
+  --cream-2: #F3EEE4;
+  --charcoal: #1F1D1A;
+  --navy: #26307D;
+  --teal: #00897B;
+  --lime: #BFD730;
+
+  --background: var(--cream);
+  --foreground: var(--charcoal);
+  --card: #FFFFFF;
+  --card-foreground: var(--charcoal);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--charcoal);
+  --primary: var(--teal);
+  --primary-foreground: var(--cream);
+  --secondary: var(--cream-2);
+  --secondary-foreground: var(--charcoal);
+  --muted: var(--cream-2);
+  --muted-foreground: #6B655C;
+  --accent: var(--lime);
+  --accent-foreground: var(--charcoal);
+  --destructive: #B4321E;
+  --destructive-foreground: var(--cream);
+  --border: #E4DED2;
+  --input: #E4DED2;
+  --ring: var(--teal);
+  --masthead: var(--navy);
+  --masthead-foreground: var(--cream);
+  --shadow-card: 0 1px 2px 0 color-mix(in oklab, #000 8%, transparent);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.21 0.022 270);
-  --sidebar-foreground: oklch(0.96 0.005 270);
-  --sidebar-primary: oklch(0.7845 0.1325 181.94);
-  --sidebar-primary-foreground: oklch(0.14 0.02 270);
-  --sidebar-accent: oklch(0.23 0.025 270);
-  --sidebar-accent-foreground: oklch(0.96 0.005 270);
-  --sidebar-border: oklch(0.32 0.02 270);
-  --sidebar-ring: oklch(0.7845 0.1325 181.94);
+  --sidebar: var(--navy);
+  --sidebar-foreground: var(--cream);
+  --sidebar-primary: var(--teal);
+  --sidebar-primary-foreground: var(--cream);
+  --sidebar-accent: var(--cream-2);
+  --sidebar-accent-foreground: var(--charcoal);
+  --sidebar-border: color-mix(in oklab, var(--cream) 15%, transparent);
+  --sidebar-ring: var(--teal);
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "Lora", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-display: "Playfair Display", "Iowan Old Style", Georgia, serif;
 }
 
 .dark {
-  --background: oklch(0.1783 0.0128 270.6);
-  --foreground: oklch(0.984 0.003 270);
-  --card: oklch(0.2616 0.0296 267.48);
-  --card-foreground: oklch(0.984 0.003 270);
-  --popover: oklch(0.2616 0.0296 267.48);
-  --popover-foreground: oklch(0.984 0.003 270);
-  --primary: oklch(0.7845 0.1325 181.94);
-  --primary-foreground: oklch(0.208 0.042 270);
-  --secondary: oklch(0.23 0.025 270);
-  --secondary-foreground: oklch(0.984 0.003 270);
-  --muted: oklch(0.23 0.025 270);
-  --muted-foreground: oklch(0.704 0.04 270);
-  --accent: oklch(0.23 0.025 270);
-  --accent-foreground: oklch(0.984 0.003 270);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 270);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 270);
-  --shadow-card: 0 1px 2px 0 color-mix(in oklab, oklch(0 0 0) 30%, transparent);
-  --chart-1: oklch(0.488 0.243 270);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 270);
-  --sidebar-foreground: oklch(0.984 0.003 270);
-  --sidebar-primary: oklch(0.488 0.243 270);
-  --sidebar-primary-foreground: oklch(0.984 0.003 270);
-  --sidebar-accent: oklch(0.23 0.025 270);
-  --sidebar-accent-foreground: oklch(0.984 0.003 270);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 270);
+  /* Site is single-mode (light editorial). Keep .dark identical. */
 }
 
 @layer base {
@@ -146,7 +124,42 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    line-height: 1.6;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
   }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.25;
+  }
+
+  h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+}
+
+@utility font-serif {
+  font-family: var(--font-serif);
+}
+
+@utility caption {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 11px;
+  letter-spacing: 0.06em;
 }
