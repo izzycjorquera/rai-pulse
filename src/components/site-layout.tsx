@@ -21,29 +21,30 @@ export function SiteLayout({
 }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
-          <Link to="/" className="group flex items-center gap-2.5">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/15 ring-1 ring-primary/40">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+      <header className="sticky top-0 z-30 bg-masthead text-masthead-foreground shadow-[0_1px_0_0_color-mix(in_oklab,#000_20%,transparent)]">
+        <div className="h-1 w-full bg-lime/70" />
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+          <Link to="/" className="group flex items-center gap-3">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/20 ring-1 ring-primary/60">
+              <span className="h-2 w-2 rounded-full bg-primary" />
             </span>
-            <span className="text-sm font-semibold tracking-tight">
+            <span className="font-display text-lg font-bold tracking-tight leading-none">
               RAI Pulse
             </span>
-            <span className="hidden text-xs text-muted-foreground sm:inline">
-              · AI governance briefing
+            <span className="hidden font-sans text-[11px] uppercase tracking-[0.14em] text-masthead-foreground/60 sm:inline">
+              AI governance briefing
             </span>
           </Link>
-          <nav className="flex items-center gap-1 text-sm">
+          <nav className="flex items-center gap-1 font-sans text-sm">
             {NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
-                className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className="rounded-md px-3 py-1.5 text-masthead-foreground/70 transition-colors hover:bg-white/10 hover:text-masthead-foreground"
                 activeProps={{
                   className:
-                    "rounded-md px-3 py-1.5 bg-secondary text-foreground",
+                    "rounded-md px-3 py-1.5 bg-white/10 text-masthead-foreground",
                 }}
               >
                 {item.label}
@@ -56,27 +57,29 @@ export function SiteLayout({
       <main className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
         <div className="mb-10 max-w-3xl">
           {eyebrow && (
-            <div className="mb-3 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-primary">
-              <span className="h-px w-6 bg-primary/60" />
+            <div className="mb-4 inline-flex items-center gap-2 font-sans text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
+              <span className="h-px w-8 bg-primary/70" />
               {eyebrow}
             </div>
           )}
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="text-4xl sm:text-5xl">
             {title}
           </h1>
           {description && (
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+            <p className="mt-4 max-w-2xl font-sans text-base leading-[1.6] text-muted-foreground">
               {description}
             </p>
           )}
         </div>
+        <hr className="mb-10 border-border" />
         {children}
       </main>
 
-      <footer className="border-t border-border/60">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} RAI Pulse. Curated briefing — not legal advice.</span>
-          <span>Built as a portfolio project.</span>
+      <footer className="bg-masthead text-masthead-foreground">
+        <div className="h-1 w-full bg-lime/70" />
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-8 font-sans text-[11px] uppercase tracking-[0.12em] text-masthead-foreground/70 sm:flex-row sm:items-center sm:justify-between">
+          <span>© {new Date().getFullYear()} RAI Pulse · Curated briefing, not legal advice</span>
+          <span>Built as a portfolio project</span>
         </div>
       </footer>
     </div>
@@ -85,7 +88,7 @@ export function SiteLayout({
 
 export function TagBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-secondary/80 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+    <span className="inline-flex items-center rounded-full border border-border bg-secondary px-2 py-0.5 font-sans text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
       {children}
     </span>
   );
