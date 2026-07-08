@@ -122,7 +122,7 @@ function Index() {
           {!unavailable && (
             <ol className="space-y-4">
               {feed.articles.map((a, i) => {
-                const tags = inferTags(`${a.title} ${a.summary}`);
+                const tags = a.topic ? [a.topic] : inferTags(`${a.title} ${a.summary}`);
                 const code = a.region ? REGION_CODE[a.region] : undefined;
                 return (
                   <li
@@ -130,11 +130,10 @@ function Index() {
                     className="rounded-2xl border border-border bg-card shadow-card overflow-hidden"
                   >
                     {a.imageUrl && <ArticleImage src={a.imageUrl} alt="" />}
-                    <div className="flex gap-4 p-5">
-                    <div className="font-display hidden shrink-0 pt-0.5 text-3xl font-bold tabular-nums text-accent sm:block" style={{ color: "var(--lime)" }}>
-                      {String(i + 1).padStart(2, "0")}
-                    </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="p-5">
+                    <div className="min-w-0">
+                      {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
+                      {void i}
                       <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         <span className="font-medium text-foreground/80">
                           {a.source}
@@ -162,7 +161,7 @@ function Index() {
                         {a.title}
                       </a>
                       {a.enterpriseImplication && (
-                        <p className="mt-2 text-sm leading-relaxed text-foreground">
+                        <p className="mt-3 border-l-2 border-primary pl-3 text-[13px] leading-relaxed text-foreground/90">
                           {a.enterpriseImplication}
                         </p>
                       )}
