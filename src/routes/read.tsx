@@ -97,3 +97,98 @@ function ReadOfTheWeekPage() {
     </SiteLayout>
   );
 }
+
+function ReadCard({ item }: { item: ReadItem }) {
+  return (
+    <article className="rounded-2xl border border-border bg-card p-5 shadow-card sm:p-8">
+      <div className="flex flex-col gap-6 sm:gap-8 md:flex-row md:items-start">
+        <div className="md:w-1/3 md:shrink-0">
+          <Cover item={item} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 font-sans text-[10.5px] font-semibold uppercase tracking-[0.16em] text-primary">
+            {TYPE_LABEL[item.type]}
+          </span>
+          <h2 className="mt-3 font-serif text-2xl font-semibold leading-tight text-foreground sm:text-[26px]">
+            {item.title}
+          </h2>
+          <p className="mt-2 caption text-muted-foreground">
+            {item.authorOrShow} · {item.year}
+          </p>
+          <p className="mt-4 text-sm leading-relaxed text-foreground/90">
+            {item.digest}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <span
+              className="inline-flex items-center rounded-full px-3 py-1 font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal"
+              style={{ backgroundColor: "var(--lime)" }}
+            >
+              Why it matters: {item.whyItMatters}
+            </span>
+            <a
+              href={item.link}
+              target={item.link.startsWith("http") ? "_blank" : undefined}
+              rel={item.link.startsWith("http") ? "noopener noreferrer" : undefined}
+              className="font-sans text-xs font-semibold uppercase tracking-[0.14em] text-primary hover:underline"
+            >
+              {LINK_LABEL[item.type]} →
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function Cover({ item }: { item: ReadItem }) {
+  const [imgOk, setImgOk] = useState(true);
+  const showFallback = !item.imageUrl || !imgOk;
+  return (
+    <div
+      className="mx-auto aspect-[2/3] w-full max-w-[240px] overflow-hidden rounded-xl shadow-[0_18px_40px_-20px_rgba(31,29,26,0.45)] md:mx-0"
+      style={{ transform: "rotate(-2deg)" }}
+    >
+      {showFallback ? (
+        <TypographicCover item={item} />
+      ) : (
+        <img
+          src={item.imageUrl}
+          alt={item.title}
+          className="h-full w-full object-cover"
+          onError={() => setImgOk(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function TypographicCover({ item }: { item: ReadItem }) {
+  return (
+    <div
+      className="relative flex h-full w-full flex-col justify-between p-4 sm:p-5"
+      style={{ backgroundColor: "var(--navy)", color: "var(--cream)" }}
+    >
+      <span
+        className="self-start rounded-full px-2 py-0.5 font-sans text-[9.5px] font-semibold uppercase tracking-[0.18em]"
+        style={{ backgroundColor: "color-mix(in oklab, var(--cream) 12%, transparent)", color: "var(--cream)" }}
+      >
+        {TYPE_LABEL[item.type]}
+      </span>
+      <div>
+        <h3
+          className="font-display font-bold leading-[1.05]"
+          style={{ fontSize: "clamp(1.05rem, 2.2vw, 1.4rem)" }}
+        >
+          {item.title}
+        </h3>
+        <div
+          className="mt-3 h-[2px] w-14"
+          style={{ backgroundColor: "var(--teal)" }}
+        />
+        <p className="mt-3 font-sans text-[10.5px] uppercase tracking-[0.14em] text-cream/70" style={{ color: "color-mix(in oklab, var(--cream) 70%, transparent)" }}>
+          {item.authorOrShow} · {item.year}
+        </p>
+      </div>
+    </div>
+  );
+}
