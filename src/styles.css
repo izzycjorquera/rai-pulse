@@ -163,3 +163,13 @@
   font-size: 11px;
   letter-spacing: 0.06em;
 }
+
+@utility wordmark {
+  font-family: "Montserrat", var(--font-sans);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-size: clamp(1.25rem, 3.5vw, 2rem);
+  line-height: 1;
+  color: var(--cream);
+}

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 const NAV = [
   { to: "/", label: "This Week" },
@@ -23,19 +23,17 @@ export function SiteLayout({
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-30 bg-masthead text-masthead-foreground shadow-[0_1px_0_0_color-mix(in_oklab,#000_20%,transparent)]">
         <div className="h-1 w-full bg-lime/70" />
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-          <Link to="/" className="group flex items-center gap-3">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/20 ring-1 ring-primary/60">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-            </span>
-            <span className="font-display text-lg font-bold tracking-tight leading-none">
-              Responsible AI Pulse
-            </span>
-            <span className="hidden font-sans text-[11px] uppercase tracking-[0.14em] text-masthead-foreground/60 sm:inline">
-              AI governance briefing
-            </span>
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 py-6 sm:py-8">
+          <Link
+            to="/"
+            className="flex items-center justify-center gap-5 sm:gap-8"
+            aria-label="Responsible AI Pulse — home"
+          >
+            <span className="wordmark">Responsible</span>
+            <LogoSlot />
+            <span className="wordmark">Pulse</span>
           </Link>
-          <nav className="flex items-center gap-1 font-sans text-sm">
+          <nav className="flex flex-wrap items-center justify-center gap-1 font-sans text-sm">
             {NAV.map((item) => (
               <Link
                 key={item.to}
@@ -90,6 +88,27 @@ export function TagBadge({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full border border-border bg-secondary px-2 py-0.5 font-sans text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
       {children}
+    </span>
+  );
+}
+
+function LogoSlot() {
+  const [hasLogo, setHasLogo] = useState(true);
+  return (
+    <span
+      className="flex h-12 w-12 shrink-0 items-center justify-center sm:h-16 sm:w-16"
+      aria-hidden={!hasLogo}
+    >
+      {hasLogo ? (
+        <img
+          src="/masthead-logo.png"
+          alt="Responsible AI Pulse logo"
+          className="h-full w-full object-contain"
+          onError={() => setHasLogo(false)}
+        />
+      ) : (
+        <span className="wordmark">AI</span>
+      )}
     </span>
   );
 }

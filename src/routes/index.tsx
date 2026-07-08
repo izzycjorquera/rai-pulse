@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
 import { GeopoliticsMap } from "@/components/geopolitics-map";
@@ -126,8 +127,10 @@ function Index() {
                 return (
                   <li
                     key={a.url}
-                    className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-card"
+                    className="rounded-2xl border border-border bg-card shadow-card overflow-hidden"
                   >
+                    {a.imageUrl && <ArticleImage src={a.imageUrl} alt="" />}
+                    <div className="flex gap-4 p-5">
                     <div className="font-display hidden shrink-0 pt-0.5 text-3xl font-bold tabular-nums text-accent sm:block" style={{ color: "var(--lime)" }}>
                       {String(i + 1).padStart(2, "0")}
                     </div>
@@ -171,6 +174,7 @@ function Index() {
                         </div>
                       )}
                     </div>
+                    </div>
                   </li>
                 );
               })}
@@ -179,5 +183,21 @@ function Index() {
         </section>
       </div>
     </SiteLayout>
+  );
+}
+
+function ArticleImage({ src, alt }: { src: string; alt: string }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  return (
+    <div className="aspect-video w-full overflow-hidden bg-secondary">
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        className="h-full w-full object-cover"
+        onError={() => setOk(false)}
+      />
+    </div>
   );
 }
