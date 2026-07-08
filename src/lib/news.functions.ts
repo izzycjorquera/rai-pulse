@@ -11,6 +11,7 @@ export type FeedArticle = {
   country?: string;
   lat?: number;
   lon?: number;
+  imageUrl?: string;
 };
 
 export type FeedPayload = {
@@ -28,6 +29,7 @@ type NewsApiResponse = {
     url: string;
     publishedAt: string;
     source: { name: string | null };
+    urlToImage?: string | null;
   }>;
   message?: string;
 };
@@ -83,6 +85,7 @@ type Candidate = {
   date: string;
   summary: string;
   url: string;
+  imageUrl?: string;
 };
 
 async function curateWithClaude(
@@ -304,6 +307,10 @@ async function buildPayload(): Promise<FeedPayload> {
           date: relativeDate(a.publishedAt),
           summary: a.description as string,
           url: a.url,
+          imageUrl:
+            typeof a.urlToImage === "string" && a.urlToImage.startsWith("http")
+              ? a.urlToImage
+              : undefined,
         }));
       console.log("[news] candidates after filter:", candidates.length);
 
