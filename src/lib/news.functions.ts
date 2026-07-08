@@ -52,7 +52,7 @@ function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most significant stories of the week for responsible AI, ranked by significance for enterprise readers (most significant first). Discard product launches, stock news, and opinion pieces.\n\nFor each selected story, assign a region tag using exactly one of these strings:\n\nNorth America — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEurope — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAsia-Pacific — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRest of World — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions, assign it to the region where the regulatory action originates. Return the region string exactly as written — no variations like \'US\', \'NA\', or \'APAC\'.\n\nAlso pick the single most relevant country for the story as a "country" field: use the country\'s common English name (e.g. "United States", "United Kingdom", "China"), or the exact string "EU" for EU-wide stories that are not tied to one member state, or "Global" for genuinely multilateral stories with no single locus. Provide approximate latitude and longitude for that country\'s capital (for "EU" use Brussels; for "Global" omit lat/lon or set them to null) as numbers in decimal degrees.\n\nAssign each story exactly one topic tag from this list, choosing the most specific fit: Regulation & Enforcement · Safety & Testing · Chips & Export Controls · Litigation & Liability · Labor & Workforce · Privacy & Data · National AI Strategy · Standards & Frameworks · Defense & Security · Corporate Accountability. Aim for topical variety across the 12 selections — if two stories tell the same story, prefer the more significant one and pick something different for the other slot.\n\nFor each story, write one sentence stating the concrete business implication. Begin the sentence with the affected actor — e.g. "Compliance teams...", "Fleet operators...", "Multinationals with EU operations...", "Procurement leads..." — and never use a stock prefix like "For enterprises:". Vary the openings across the selection. Keep it to one short sentence, 25 words maximum.\n\nReturn only valid JSON: an array of objects, ordered by significance (most significant first), with fields "index" (integer, referring to the numbered headline), "region" (one of North America, Europe, Asia-Pacific, Rest of World), "country" (string), "lat" (number or null), "lon" (number or null), "topic" (one of the topic tags above), and "implication" (the business-implication sentence). No commentary outside the JSON.';
+  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most significant stories of the week for responsible AI, ranked by significance for enterprise readers (most significant first). Discard product launches, stock news, and opinion pieces.\n\nFor each selected story, assign a region code using exactly one of these strings:\n\nNA — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEU — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAP — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRW — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions, assign it to the region where the regulatory action originates.\n\nAlso pick the single most relevant country as a "c" field: use the country\'s common English name (e.g. "United States", "United Kingdom", "China"), or the exact string "EU" for EU-wide stories not tied to one member state, or "Global" for genuinely multilateral stories with no single locus.\n\nAssign each story exactly one topic tag from this list, choosing the most specific fit: Regulation & Enforcement · Safety & Testing · Chips & Export Controls · Litigation & Liability · Labor & Workforce · Privacy & Data · National AI Strategy · Standards & Frameworks · Defense & Security · Corporate Accountability. Aim for topical variety across the 12 selections — if two stories tell the same story, prefer the more significant one and pick something different for the other slot.\n\nFor each story, write one sentence stating the concrete business implication. Begin the sentence with the affected actor — e.g. "Compliance teams...", "Fleet operators...", "Multinationals with EU operations...", "Procurement leads..." — and never use a stock prefix like "For enterprises:". Vary the openings across the selection. Keep it to one short sentence, 25 words maximum.\n\nReturn only valid JSON: an array of objects, ordered by significance (most significant first), with these exact short-key fields per object: "i" (integer, referring to the numbered headline), "r" (region code, one of "NA", "EU", "AP", "RW"), "c" (country string), "t" (topic tag), and "m" (the business-implication sentence). Return the JSON minified on a single line — no line breaks or indentation. No commentary outside the JSON.';
 
 const INTRO_PROMPT =
   "You are a neutral analyst writing for RAI Pulse, a weekly briefing on AI governance for enterprise readers. Given the numbered stories selected for this week, write a short intro paragraph synthesizing the overall picture of the week. Rules: 2-3 sentences, neutral analyst voice, no opinion, no markdown, no asterisks, no bold, no bullet points. Every claim must be supported by the provided stories. Do not refer to 'the articles', 'the headlines', 'the stories' or 'the coverage'. Return plain text only, no JSON, no preamble.";
@@ -60,9 +60,88 @@ const INTRO_PROMPT =
 const BRIEFING_UNAVAILABLE = "Briefing temporarily unavailable.";
 
 const NEWS_TIMEOUT_MS = 6_000;
-const CURATION_TIMEOUT_MS = 20_000;
+const CURATION_TIMEOUT_MS = 30_000;
 const INTRO_TIMEOUT_MS = 10_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
+const REGION_BY_CODE: Record<string, FeedArticle["region"]> = {
+  NA: "North America",
+  EU: "Europe",
+  AP: "Asia-Pacific",
+  RW: "Rest of World",
+};
+
+// Capital-city coordinates for countries most likely to appear in AI policy news.
+// "EU" maps to Brussels. Countries absent from this table simply get no pin.
+const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
+  "United States": { lat: 38.9072, lon: -77.0369 },
+  Canada: { lat: 45.4215, lon: -75.6972 },
+  Mexico: { lat: 19.4326, lon: -99.1332 },
+  EU: { lat: 50.8503, lon: 4.3517 },
+  "United Kingdom": { lat: 51.5074, lon: -0.1278 },
+  Ireland: { lat: 53.3498, lon: -6.2603 },
+  France: { lat: 48.8566, lon: 2.3522 },
+  Germany: { lat: 52.52, lon: 13.405 },
+  Italy: { lat: 41.9028, lon: 12.4964 },
+  Spain: { lat: 40.4168, lon: -3.7038 },
+  Portugal: { lat: 38.7223, lon: -9.1393 },
+  Netherlands: { lat: 52.3676, lon: 4.9041 },
+  Belgium: { lat: 50.8503, lon: 4.3517 },
+  Luxembourg: { lat: 49.6116, lon: 6.1319 },
+  Denmark: { lat: 55.6761, lon: 12.5683 },
+  Sweden: { lat: 59.3293, lon: 18.0686 },
+  Norway: { lat: 59.9139, lon: 10.7522 },
+  Finland: { lat: 60.1699, lon: 24.9384 },
+  Iceland: { lat: 64.1466, lon: -21.9426 },
+  Switzerland: { lat: 46.948, lon: 7.4474 },
+  Austria: { lat: 48.2082, lon: 16.3738 },
+  Poland: { lat: 52.2297, lon: 21.0122 },
+  Czechia: { lat: 50.0755, lon: 14.4378 },
+  "Czech Republic": { lat: 50.0755, lon: 14.4378 },
+  Slovakia: { lat: 48.1486, lon: 17.1077 },
+  Hungary: { lat: 47.4979, lon: 19.0402 },
+  Romania: { lat: 44.4268, lon: 26.1025 },
+  Bulgaria: { lat: 42.6977, lon: 23.3219 },
+  Greece: { lat: 37.9838, lon: 23.7275 },
+  Estonia: { lat: 59.437, lon: 24.7536 },
+  Latvia: { lat: 56.9496, lon: 24.1052 },
+  Lithuania: { lat: 54.6872, lon: 25.2797 },
+  Ukraine: { lat: 50.4501, lon: 30.5234 },
+  Russia: { lat: 55.7558, lon: 37.6173 },
+  Turkey: { lat: 39.9334, lon: 32.8597 },
+  China: { lat: 39.9042, lon: 116.4074 },
+  "Hong Kong": { lat: 22.3193, lon: 114.1694 },
+  Taiwan: { lat: 25.033, lon: 121.5654 },
+  Japan: { lat: 35.6762, lon: 139.6503 },
+  "South Korea": { lat: 37.5665, lon: 126.978 },
+  "North Korea": { lat: 39.0392, lon: 125.7625 },
+  India: { lat: 28.6139, lon: 77.209 },
+  Pakistan: { lat: 33.6844, lon: 73.0479 },
+  Bangladesh: { lat: 23.8103, lon: 90.4125 },
+  Singapore: { lat: 1.3521, lon: 103.8198 },
+  Malaysia: { lat: 3.139, lon: 101.6869 },
+  Indonesia: { lat: -6.2088, lon: 106.8456 },
+  Thailand: { lat: 13.7563, lon: 100.5018 },
+  Vietnam: { lat: 21.0285, lon: 105.8542 },
+  Philippines: { lat: 14.5995, lon: 120.9842 },
+  Australia: { lat: -35.2809, lon: 149.13 },
+  "New Zealand": { lat: -41.2865, lon: 174.7762 },
+  Israel: { lat: 31.7683, lon: 35.2137 },
+  "Saudi Arabia": { lat: 24.7136, lon: 46.6753 },
+  "United Arab Emirates": { lat: 24.4539, lon: 54.3773 },
+  UAE: { lat: 24.4539, lon: 54.3773 },
+  Qatar: { lat: 25.2854, lon: 51.531 },
+  Iran: { lat: 35.6892, lon: 51.389 },
+  Egypt: { lat: 30.0444, lon: 31.2357 },
+  "South Africa": { lat: -25.7479, lon: 28.2293 },
+  Nigeria: { lat: 9.0765, lon: 7.3986 },
+  Kenya: { lat: -1.2921, lon: 36.8219 },
+  Morocco: { lat: 34.0209, lon: -6.8416 },
+  Brazil: { lat: -15.7942, lon: -47.8822 },
+  Argentina: { lat: -34.6037, lon: -58.3816 },
+  Chile: { lat: -33.4489, lon: -70.6693 },
+  Colombia: { lat: 4.711, lon: -74.0721 },
+};
+
 let cache: { payload: FeedPayload; expiresAt: number } | null = null;
 let inflight: Promise<FeedPayload> | null = null;
 
