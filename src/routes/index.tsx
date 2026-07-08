@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout, TagBadge } from "@/components/site-layout";
 import { getRegulatoryFeed } from "@/lib/news.functions";
+import { GeopoliticsMap } from "@/components/geopolitics-map";
 
 const WEEK_MS = 7 * 24 * 60 * 60_000;
 
@@ -105,6 +106,11 @@ function Index() {
           {unavailable && (
             <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
               Briefing temporarily unavailable.
+            </div>
+          )}
+          {!unavailable && feed.articles.length > 0 && (
+            <div className="mb-8">
+              <GeopoliticsMap articles={feed.articles} />
             </div>
           )}
           {!unavailable && feed.intro && (
