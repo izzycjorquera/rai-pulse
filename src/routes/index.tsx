@@ -121,7 +121,7 @@ function Index() {
           )}
           {!unavailable && (
             <ol className="space-y-4">
-              {feed.articles.map((a, i) => {
+              {feed.articles.map((a) => {
                 const tags = a.topic ? [a.topic] : inferTags(`${a.title} ${a.summary}`);
                 const code = a.region ? REGION_CODE[a.region] : undefined;
                 return (
@@ -132,8 +132,6 @@ function Index() {
                     {a.imageUrl && <ArticleImage src={a.imageUrl} alt="" />}
                     <div className="p-5">
                     <div className="min-w-0">
-                      {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
-                      {void i}
                       <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         <span className="font-medium text-foreground/80">
                           {a.source}
