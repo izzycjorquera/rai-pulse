@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "responsible-ai-pulse-mcp",
+      "version": "0.1.0",
+      "title": "Responsible AI Pulse"
+    },
+    "tools": [
+      {
+        "name": "get_this_week",
+        "title": "Get this week's AI governance briefing",
+        "description": "Return this week's curated AI governance stories from Responsible AI Pulse, ranked by significance. Each story includes headline, source, date, region, country, topic tag, one-sentence enterprise implication, and source URL, along with a short synthesis intro.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_radar",
+        "title": "Get the AI governance radar",
+        "description": "Return the Responsible AI Pulse radar: upcoming and recent AI governance milestones (regulations, deadlines, obligations) with date, jurisdiction, title, description, enterprise implication, and status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_reads",
+        "title": "Get the Read of the Week list",
+        "description": "Return the Responsible AI Pulse Read of the Week list: curated papers, books, and podcast episodes on responsible AI, each with title, author or show, year, digest, why-it-matters tag, and link.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
