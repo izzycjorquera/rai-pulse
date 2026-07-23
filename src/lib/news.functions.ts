@@ -208,7 +208,8 @@ async function curateWithClaude(
       CURATION_TIMEOUT_MS,
     );
     if (!res.ok) {
-      console.log("[news] Claude curation HTTP error:", res.status);
+      const errorBody = await res.text();
+      console.log("[news] Claude curation HTTP error:", res.status, errorBody);
       return null;
     }
     const json = (await res.json()) as {
@@ -307,7 +308,11 @@ async function generateIntro(
       },
       INTRO_TIMEOUT_MS,
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errorBody = await res.text();
+      console.log("[news] Claude intro HTTP error:", res.status, errorBody);
+      return null;
+    }
     const json = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>;
     };
