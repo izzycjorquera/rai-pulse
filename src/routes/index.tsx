@@ -61,17 +61,18 @@ function SectionHeading({
 }
 
 function UpdatedLabel({ updatedAt }: { updatedAt?: string }) {
+  const formatted = updatedAt
+    ? new Date(updatedAt).toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "UTC",
+      }) + " UTC"
+    : "";
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
       {updatedAt && (
         <>
-          <span>
-            Last updated{" "}
-            {new Date(updatedAt).toLocaleString(undefined, {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-          </span>
+          <span>Last updated {formatted}</span>
           <span className="text-border">·</span>
         </>
       )}
