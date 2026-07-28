@@ -130,7 +130,7 @@ function Index() {
                     key={a.url}
                     className="rounded-2xl border border-border bg-card shadow-card overflow-hidden"
                   >
-                    {a.imageUrl && <ArticleImage src={a.imageUrl} alt="" />}
+                    {a.imageUrl && <ArticleImage src={a.imageUrl} alt={a.title} />}
                     <div className="p-5">
                     <div className="min-w-0">
                       <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -193,6 +193,7 @@ function ArticleImage({ src, alt }: { src: string; alt: string }) {
         src={src}
         alt={alt}
         loading="lazy"
+        referrerPolicy="no-referrer"
         className="h-full w-full object-cover"
         onError={() => setOk(false)}
       />

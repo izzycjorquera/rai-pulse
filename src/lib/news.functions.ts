@@ -35,7 +35,7 @@ type NewsApiResponse = {
   message?: string;
 };
 
-function relativeDate(iso: string): string {
+export function relativeDate(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
   const diff = Date.now() - then;
@@ -174,6 +174,28 @@ type Candidate = {
   imageUrl?: string;
 };
 
+type CurationPick = {
+  i?: number;
+  r?: string;
+  c?: string;
+  t?: string;
+  m?: string;
+};
+
+// Claude is asked for bare JSON but may wrap it in prose despite the prompt;
+// pull out the first top-level array and parse just that.
+export function extractJsonArray(text: string): CurationPick[] | null {
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+  return Array.isArray(parsed) ? (parsed as CurationPick[]) : null;
+}
+
 async function curateWithClaude(
   apiKey: string,
   candidates: Candidate[],
@@ -228,20 +250,9 @@ async function curateWithClaude(
         .join(" ")
         .trim() ?? "";
     debugLog("[news] Claude raw response:", text);
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) {
-      console.error("[news] Claude response had no JSON array match");
-      return null;
-    }
-    const parsed = JSON.parse(match[0]) as Array<{
-      i?: number;
-      r?: string;
-      c?: string;
-      t?: string;
-      m?: string;
-    }>;
-    if (!Array.isArray(parsed)) {
-      console.error("[news] Claude parsed response was not an array:", parsed);
+    const parsed = extractJsonArray(text);
+    if (!parsed) {
+      console.error("[news] Claude response had no parseable JSON array:", text);
       return null;
     }
     return parsed
@@ -334,6 +345,41 @@ async function generateIntro(
   }
 }
 
+// Every article link is checked against this allowlist before it renders —
+// exported for testing (`isAllowedUrl`) since it's the site's one link-safety gate.
+export const ALLOWED_DOMAINS = [
+  "bbc.co.uk",
+  "reuters.com",
+  "ft.com",
+  "politico.eu",
+  "politico.com",
+  "theverge.com",
+  "wired.com",
+  "technologyreview.com",
+  "theguardian.com",
+  "apnews.com",
+  "euractiv.com",
+  "euronews.com",
+  "dw.com",
+  "scmp.com",
+  "techcrunch.com",
+  "axios.com",
+  "aljazeera.com",
+  "restofworld.org",
+];
+
+export function isAllowedUrl(
+  articleUrl: string,
+  allowedDomains: string[] = ALLOWED_DOMAINS,
+): boolean {
+  try {
+    const host = new URL(articleUrl).hostname.replace(/^www\./, "");
+    return allowedDomains.some((d) => host === d || host.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
 async function buildPayload(): Promise<FeedPayload> {
   const key = process.env.NEWSAPI_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -350,22 +396,11 @@ async function buildPayload(): Promise<FeedPayload> {
     const q = encodeURIComponent(
       '(AI OR "artificial intelligence") AND (regulation OR governance OR policy OR regulator OR lawmakers OR "export controls" OR compliance OR oversight)',
     );
-    const domains =
-      "bbc.co.uk,reuters.com,ft.com,politico.eu,politico.com,theverge.com,wired.com,technologyreview.com,theguardian.com,apnews.com,euractiv.com,euronews.com,dw.com,scmp.com,techcrunch.com,axios.com,aljazeera.com,restofworld.org";
+    const domains = ALLOWED_DOMAINS.join(",");
     const from = new Date(Date.now() - 7 * 86_400_000)
       .toISOString()
       .slice(0, 10);
     const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
-
-    const allowedDomains = domains.split(",");
-    const isAllowedUrl = (articleUrl: string) => {
-      try {
-        const host = new URL(articleUrl).hostname.replace(/^www\./, "");
-        return allowedDomains.some((d) => host === d || host.endsWith(`.${d}`));
-      } catch {
-        return false;
-      }
-    };
 
     try {
       const res = await fetchWithTimeout(

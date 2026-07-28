@@ -154,6 +154,7 @@ function Cover({ item }: { item: ReadItem }) {
         <img
           src={item.imageUrl}
           alt={item.title}
+          referrerPolicy="no-referrer"
           className="h-full w-full object-cover"
           onError={() => setImgOk(false)}
         />

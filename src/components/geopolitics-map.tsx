@@ -7,9 +7,9 @@ import {
 } from "react-simple-maps";
 import type { FeedArticle } from "@/lib/news.functions";
 
-// Public world topology (110m) — small enough to load quickly.
-const GEO_URL =
-  "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+// World topology (110m), served from our own /public rather than a third-party
+// CDN so the map doesn't depend on jsdelivr's uptime.
+const GEO_URL = "/world-110m.json";
 
 type CountryGroup = {
   country: string;
