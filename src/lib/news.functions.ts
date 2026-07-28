@@ -63,6 +63,12 @@ const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 30_000;
 const INTRO_TIMEOUT_MS = 10_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
+const ERROR_CACHE_MS = 5 * 60 * 1_000;
+
+const DEBUG = process.env.NEWS_DEBUG === "true";
+function debugLog(...args: unknown[]) {
+  if (DEBUG) console.log(...args);
+}
 const REGION_BY_CODE: Record<string, FeedArticle["region"]> = {
   NA: "North America",
   EU: "Europe",
@@ -209,7 +215,7 @@ async function curateWithClaude(
     );
     if (!res.ok) {
       const errorBody = await res.text();
-      console.log("[news] Claude curation HTTP error:", res.status, errorBody);
+      console.error("[news] Claude curation HTTP error:", res.status, errorBody);
       return null;
     }
     const json = (await res.json()) as {
@@ -221,10 +227,10 @@ async function curateWithClaude(
         .map((c) => c.text as string)
         .join(" ")
         .trim() ?? "";
-    console.log("[news] Claude raw response:", text);
+    debugLog("[news] Claude raw response:", text);
     const match = text.match(/\[[\s\S]*\]/);
     if (!match) {
-      console.log("[news] Claude response had no JSON array match");
+      console.error("[news] Claude response had no JSON array match");
       return null;
     }
     const parsed = JSON.parse(match[0]) as Array<{
@@ -235,7 +241,7 @@ async function curateWithClaude(
       m?: string;
     }>;
     if (!Array.isArray(parsed)) {
-      console.log("[news] Claude parsed response was not an array:", parsed);
+      console.error("[news] Claude parsed response was not an array:", parsed);
       return null;
     }
     return parsed
@@ -269,7 +275,7 @@ async function curateWithClaude(
       })
       .slice(0, 12);
   } catch (err) {
-    console.log("[news] Claude curation error:", err);
+    console.error("[news] Claude curation error:", err);
     return null;
   }
 }
@@ -310,7 +316,7 @@ async function generateIntro(
     );
     if (!res.ok) {
       const errorBody = await res.text();
-      console.log("[news] Claude intro HTTP error:", res.status, errorBody);
+      console.error("[news] Claude intro HTTP error:", res.status, errorBody);
       return null;
     }
     const json = (await res.json()) as {
@@ -398,7 +404,7 @@ async function buildPayload(): Promise<FeedPayload> {
               ? a.urlToImage
               : undefined,
         }));
-      console.log("[news] candidates after filter:", candidates.length);
+      debugLog("[news] candidates after filter:", candidates.length);
 
       if (candidates.length === 0) {
         return {
@@ -426,7 +432,7 @@ async function buildPayload(): Promise<FeedPayload> {
           error: "Curation failed",
         };
       }
-      console.log(
+      debugLog(
         `[news] Claude selected ${picks.length} articles:`,
         picks.map((p) => ({
           region: p.region,
@@ -470,9 +476,13 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
     if (inflight) return inflight;
     inflight = buildPayload()
       .then((payload) => {
-        if (payload.error === null || payload.articles.length > 0) {
-          cache = { payload, expiresAt: Date.now() + DAY_MS };
-        }
+        const succeeded = payload.error === null || payload.articles.length > 0;
+        // Cache failures briefly too, so an upstream outage doesn't turn every
+        // visitor into a fresh NewsAPI + Claude call until it recovers.
+        cache = {
+          payload,
+          expiresAt: Date.now() + (succeeded ? DAY_MS : ERROR_CACHE_MS),
+        };
         return payload;
       })
       .finally(() => {
