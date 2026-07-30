@@ -22,24 +22,6 @@ export const READS: ReadItem[] = [
     whyItMatters: "Bridges safety and law",
     link: "https://arxiv.org/abs/2307.03718",
   },
-  {
-    type: "book",
-    title: "[Book title — replace me]",
-    authorOrShow: "[Author name]",
-    year: "2024",
-    digest:
-      "[Two to three sentences on why this book matters for responsible AI practitioners. Replace with your own copy for the week's pick.]",
-    whyItMatters: "On the shelf",
-    link: "#",
-  },
-  {
-    type: "listen",
-    title: "[Episode title — replace me]",
-    authorOrShow: "[Podcast name]",
-    year: "2025",
-    digest:
-      "[One or two sentences on why this episode is worth an hour of your commute. Replace with your own copy.]",
-    whyItMatters: "Recommended listen",
-    link: "#",
-  },
+  // Add the book and podcast picks here once you have real ones — the
+  // placeholder entries that used to sit here were shipping to production.
 ];
