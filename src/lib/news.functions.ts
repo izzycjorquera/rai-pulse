@@ -200,21 +200,19 @@ async function curateWithClaude(
   apiKey: string,
   candidates: Candidate[],
 ): Promise<
-  {
-    index: number;
-    region: FeedArticle["region"];
-    implication: string;
-    country?: string;
-    lat?: number;
-    lon?: number;
-    topic?: string;
-  }[] | null
+  | {
+      index: number;
+      region: FeedArticle["region"];
+      implication: string;
+      country?: string;
+      lat?: number;
+      lon?: number;
+      topic?: string;
+    }[]
+  | null
 > {
   const list = candidates
-    .map(
-      (c, i) =>
-        `${i}. ${c.title}\n   Source: ${c.source}\n   ${c.summary}`,
-    )
+    .map((c, i) => `${i}. ${c.title}\n   Source: ${c.source}\n   ${c.summary}`)
     .join("\n\n");
   try {
     const res = await fetchWithTimeout(
@@ -256,24 +254,13 @@ async function curateWithClaude(
       return null;
     }
     return parsed
-      .filter(
-        (p) =>
-          typeof p.i === "number" &&
-          p.i >= 0 &&
-          p.i < candidates.length,
-      )
+      .filter((p) => typeof p.i === "number" && p.i >= 0 && p.i < candidates.length)
       .map((p) => {
         const region = REGION_BY_CODE[(p.r ?? "").toUpperCase()] ?? "Rest of World";
         const implication = (p.m ?? "").toString().trim();
-        const country =
-          typeof p.c === "string" && p.c.trim().length > 0
-            ? p.c.trim()
-            : undefined;
+        const country = typeof p.c === "string" && p.c.trim().length > 0 ? p.c.trim() : undefined;
         const coords = country ? COUNTRY_COORDS[country] : undefined;
-        const topic =
-          typeof p.t === "string" && p.t.trim().length > 0
-            ? p.t.trim()
-            : undefined;
+        const topic = typeof p.t === "string" && p.t.trim().length > 0 ? p.t.trim() : undefined;
         return {
           index: p.i as number,
           region,
@@ -291,15 +278,9 @@ async function curateWithClaude(
   }
 }
 
-async function generateIntro(
-  apiKey: string,
-  articles: FeedArticle[],
-): Promise<string | null> {
+async function generateIntro(apiKey: string, articles: FeedArticle[]): Promise<string | null> {
   const body = articles
-    .map(
-      (a, i) =>
-        `${i}. [${a.region}] ${a.title}\n   Source: ${a.source}\n   ${a.summary}`,
-    )
+    .map((a, i) => `${i}. [${a.region}] ${a.title}\n   Source: ${a.source}\n   ${a.summary}`)
     .join("\n\n");
   try {
     const res = await fetchWithTimeout(
@@ -392,114 +373,112 @@ async function buildPayload(): Promise<FeedPayload> {
     };
   }
 
-    // Stage 1: broad fetch. Keep the query intentionally wide — Claude filters.
-    const q = encodeURIComponent(
-      '(AI OR "artificial intelligence") AND (regulation OR governance OR policy OR regulator OR lawmakers OR "export controls" OR compliance OR oversight)',
+  // Stage 1: broad fetch. Keep the query intentionally wide — Claude filters.
+  const q = encodeURIComponent(
+    '(AI OR "artificial intelligence") AND (regulation OR governance OR policy OR regulator OR lawmakers OR "export controls" OR compliance OR oversight)',
+  );
+  const domains = ALLOWED_DOMAINS.join(",");
+  const from = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
+
+  try {
+    const res = await fetchWithTimeout(
+      url,
+      { headers: { "X-Api-Key": key, "User-Agent": "RAI-Pulse/1.0" } },
+      NEWS_TIMEOUT_MS,
     );
-    const domains = ALLOWED_DOMAINS.join(",");
-    const from = new Date(Date.now() - 7 * 86_400_000)
-      .toISOString()
-      .slice(0, 10);
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
-
-    try {
-      const res = await fetchWithTimeout(
-        url,
-        { headers: { "X-Api-Key": key, "User-Agent": "RAI-Pulse/1.0" } },
-        NEWS_TIMEOUT_MS,
-      );
-      const json = (await res.json()) as NewsApiResponse;
-      if (!res.ok || json.status !== "ok" || !json.articles) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: json.message ?? `HTTP ${res.status}`,
-        };
-      }
-      // Deduplicate by URL before anything else.
-      const seen = new Set<string>();
-      const candidates: Candidate[] = json.articles
-        .filter((a) => {
-          if (!a.title || !a.description || !a.url) return false;
-          if (!isAllowedUrl(a.url)) return false;
-          if (seen.has(a.url)) return false;
-          seen.add(a.url);
-          return true;
-        })
-        .slice(0, 60)
-        .map((a) => ({
-          title: a.title as string,
-          source: a.source.name ?? "Unknown",
-          date: relativeDate(a.publishedAt),
-          summary: a.description as string,
-          url: a.url,
-          imageUrl:
-            typeof a.urlToImage === "string" && a.urlToImage.startsWith("http")
-              ? a.urlToImage
-              : undefined,
-        }));
-      debugLog("[news] candidates after filter:", candidates.length);
-
-      if (candidates.length === 0) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: "No candidates after filter",
-        };
-      }
-
-      if (!anthropicKey) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: "Missing ANTHROPIC_API_KEY",
-        };
-      }
-      const picks = await curateWithClaude(anthropicKey, candidates);
-      if (!picks || picks.length === 0) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: "Curation failed",
-        };
-      }
-      debugLog(
-        `[news] Claude selected ${picks.length} articles:`,
-        picks.map((p) => ({
-          region: p.region,
-          title: candidates[p.index]?.title,
-        })),
-      );
-      const articles: FeedArticle[] = picks.map((p) => ({
-        ...candidates[p.index],
-        enterpriseImplication: p.implication,
-        region: p.region,
-        country: p.country,
-        lat: p.lat,
-        lon: p.lon,
-        topic: p.topic,
-      }));
-
-      const intro = await generateIntro(anthropicKey, articles);
-
-      return {
-        articles,
-        intro,
-        updatedAt: new Date().toISOString(),
-        error: null,
-      };
-    } catch (e) {
+    const json = (await res.json()) as NewsApiResponse;
+    if (!res.ok || json.status !== "ok" || !json.articles) {
       return {
         articles: [],
         intro: null,
         updatedAt: new Date().toISOString(),
-        error: e instanceof Error ? e.message : "Failed to fetch news",
+        error: json.message ?? `HTTP ${res.status}`,
       };
     }
+    // Deduplicate by URL before anything else.
+    const seen = new Set<string>();
+    const candidates: Candidate[] = json.articles
+      .filter((a) => {
+        if (!a.title || !a.description || !a.url) return false;
+        if (!isAllowedUrl(a.url)) return false;
+        if (seen.has(a.url)) return false;
+        seen.add(a.url);
+        return true;
+      })
+      .slice(0, 60)
+      .map((a) => ({
+        title: a.title as string,
+        source: a.source.name ?? "Unknown",
+        date: relativeDate(a.publishedAt),
+        summary: a.description as string,
+        url: a.url,
+        imageUrl:
+          typeof a.urlToImage === "string" && a.urlToImage.startsWith("http")
+            ? a.urlToImage
+            : undefined,
+      }));
+    debugLog("[news] candidates after filter:", candidates.length);
+
+    if (candidates.length === 0) {
+      return {
+        articles: [],
+        intro: null,
+        updatedAt: new Date().toISOString(),
+        error: "No candidates after filter",
+      };
+    }
+
+    if (!anthropicKey) {
+      return {
+        articles: [],
+        intro: null,
+        updatedAt: new Date().toISOString(),
+        error: "Missing ANTHROPIC_API_KEY",
+      };
+    }
+    const picks = await curateWithClaude(anthropicKey, candidates);
+    if (!picks || picks.length === 0) {
+      return {
+        articles: [],
+        intro: null,
+        updatedAt: new Date().toISOString(),
+        error: "Curation failed",
+      };
+    }
+    debugLog(
+      `[news] Claude selected ${picks.length} articles:`,
+      picks.map((p) => ({
+        region: p.region,
+        title: candidates[p.index]?.title,
+      })),
+    );
+    const articles: FeedArticle[] = picks.map((p) => ({
+      ...candidates[p.index],
+      enterpriseImplication: p.implication,
+      region: p.region,
+      country: p.country,
+      lat: p.lat,
+      lon: p.lon,
+      topic: p.topic,
+    }));
+
+    const intro = await generateIntro(anthropicKey, articles);
+
+    return {
+      articles,
+      intro,
+      updatedAt: new Date().toISOString(),
+      error: null,
+    };
+  } catch (e) {
+    return {
+      articles: [],
+      intro: null,
+      updatedAt: new Date().toISOString(),
+      error: e instanceof Error ? e.message : "Failed to fetch news",
+    };
+  }
 }
 
 export { BRIEFING_UNAVAILABLE };

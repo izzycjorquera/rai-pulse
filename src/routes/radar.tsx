@@ -65,17 +65,8 @@ function splitMilestones(milestones: Milestone[]) {
 
 function StatusDot({ status }: { status: Milestone["status"] }) {
   const color =
-    status === "in-force"
-      ? "bg-lime"
-      : status === "delayed"
-        ? "bg-muted-foreground"
-        : "bg-primary";
-  return (
-    <span
-      className={`inline-block h-2 w-2 rounded-full ${color}`}
-      aria-hidden="true"
-    />
-  );
+    status === "in-force" ? "bg-lime" : status === "delayed" ? "bg-muted-foreground" : "bg-primary";
+  return <span className={`inline-block h-2 w-2 rounded-full ${color}`} aria-hidden="true" />;
 }
 
 function JurisdictionBadge({ children }: { children: string }) {
@@ -107,9 +98,7 @@ function TimelineItem({ milestone }: { milestone: Milestone }) {
           {isSoon(milestone.date) && <SoonBadge />}
           <StatusDot status={milestone.status} />
         </div>
-        <h2 className="mt-2 font-serif text-lg font-semibold leading-snug">
-          {milestone.title}
-        </h2>
+        <h2 className="mt-2 font-serif text-lg font-semibold leading-snug">{milestone.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {milestone.description}
         </p>
@@ -157,12 +146,8 @@ function RecentlyInForce({ milestones }: { milestones: Milestone[] }) {
                 <JurisdictionBadge>{m.jurisdiction}</JurisdictionBadge>
                 <StatusDot status={m.status} />
               </div>
-              <h3 className="mt-2 font-serif text-base font-semibold leading-snug">
-                {m.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {m.description}
-              </p>
+              <h3 className="mt-2 font-serif text-base font-semibold leading-snug">{m.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{m.description}</p>
               <p className="mt-3 border-l-2 border-primary pl-3 text-[13px] leading-relaxed text-foreground/90">
                 {m.implication}
               </p>

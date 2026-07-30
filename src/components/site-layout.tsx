@@ -41,8 +41,7 @@ export function SiteLayout({
                 activeOptions={{ exact: item.to === "/" }}
                 className="rounded-md px-3 py-1.5 text-masthead-foreground/70 transition-colors hover:bg-white/10 hover:text-masthead-foreground"
                 activeProps={{
-                  className:
-                    "rounded-md px-3 py-1.5 bg-white/10 text-masthead-foreground",
+                  className: "rounded-md px-3 py-1.5 bg-white/10 text-masthead-foreground",
                 }}
               >
                 {item.label}
@@ -60,9 +59,7 @@ export function SiteLayout({
               {eyebrow}
             </div>
           )}
-          <h1 className="text-4xl sm:text-5xl">
-            {title}
-          </h1>
+          <h1 className="text-4xl sm:text-5xl">{title}</h1>
           {description && (
             <p className="mt-4 max-w-2xl font-sans text-base leading-[1.6] text-muted-foreground">
               {description}

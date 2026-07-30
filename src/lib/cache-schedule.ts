@@ -13,7 +13,13 @@ function londonParts(date: Date): { weekday: number; hour: number } {
   const weekdayStr = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
   const hourStr = parts.find((p) => p.type === "hour")?.value ?? "0";
   const weekdayMap: Record<string, number> = {
-    Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
   };
   return {
     weekday: weekdayMap[weekdayStr] ?? 1,
@@ -32,9 +38,7 @@ export function nextMondaySixAmUK(from: Date = new Date()): number {
   const target = daysUntilMonday * 86_400_000 + (6 - hour) * 3_600_000;
   // Snap to the hour boundary in London: subtract current minutes/seconds/ms.
   const minutesMs =
-    from.getUTCMinutes() * 60_000 +
-    from.getUTCSeconds() * 1_000 +
-    from.getUTCMilliseconds();
+    from.getUTCMinutes() * 60_000 + from.getUTCSeconds() * 1_000 + from.getUTCMilliseconds();
   return from.getTime() + target - minutesMs;
 }
 

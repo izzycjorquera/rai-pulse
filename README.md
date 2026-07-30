@@ -31,9 +31,9 @@ bun run dev
 
 Requires two environment variables:
 
-| Variable | Purpose |
-|---|---|
-| `NEWSAPI_KEY` | NewsAPI key — free tier works in development only; production requires a paid plan |
+| Variable            | Purpose                                                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `NEWSAPI_KEY`       | NewsAPI key — free tier works in development only; production requires a paid plan            |
 | `ANTHROPIC_API_KEY` | Anthropic API key for takes and summaries — optional; the site degrades gracefully without it |
 
 ## Design principles

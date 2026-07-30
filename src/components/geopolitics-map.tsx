@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Marker,
-} from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import type { FeedArticle } from "@/lib/news.functions";
 
 // World topology (110m), served from our own /public rather than a third-party
@@ -47,17 +42,13 @@ function groupByCountry(articles: FeedArticle[]): CountryGroup[] {
       });
     }
   }
-  return Array.from(map.values()).sort(
-    (a, b) => b.articles.length - a.articles.length,
-  );
+  return Array.from(map.values()).sort((a, b) => b.articles.length - a.articles.length);
 }
 
 export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
   const groups = useMemo(() => groupByCountry(articles), [articles]);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const selected =
-    (selectedCountry && groups.find((g) => g.country === selectedCountry)) ||
-    null;
+  const selected = (selectedCountry && groups.find((g) => g.country === selectedCountry)) || null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
@@ -108,11 +99,7 @@ export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
                   pressed: { cursor: "pointer", outline: "none" },
                 }}
               >
-                <circle
-                  r={isSelected ? 10 : 8}
-                  fill="var(--primary)"
-                  opacity={0.25}
-                />
+                <circle r={isSelected ? 10 : 8} fill="var(--primary)" opacity={0.25} />
                 <circle
                   r={isSelected ? 5 : 4}
                   fill="var(--primary)"
@@ -151,12 +138,9 @@ export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
         {selected ? (
           <>
             <div className="mb-1 font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-              {selected.articles.length}{" "}
-              {selected.articles.length === 1 ? "story" : "stories"}
+              {selected.articles.length} {selected.articles.length === 1 ? "story" : "stories"}
             </div>
-            <h3 className="text-xl text-foreground">
-              {selected.country}
-            </h3>
+            <h3 className="text-xl text-foreground">{selected.country}</h3>
             <ul className="mt-4 space-y-4">
               {selected.articles.map((a) => (
                 <li
@@ -202,9 +186,7 @@ export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
             <div className="mb-1 font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
               This week on the map
             </div>
-            <h3 className="text-xl text-foreground">
-              Where the action is
-            </h3>
+            <h3 className="text-xl text-foreground">Where the action is</h3>
             <p className="mt-3 font-sans text-sm leading-relaxed text-muted-foreground">
               {groups.length === 0
                 ? "No mapped stories this week."
@@ -221,9 +203,7 @@ export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
                   >
                     {g.country}
                     {g.articles.length > 1 && (
-                      <span className="ml-1 font-semibold text-primary">
-                        · {g.articles.length}
-                      </span>
+                      <span className="ml-1 font-semibold text-primary">· {g.articles.length}</span>
                     )}
                   </button>
                 ))}

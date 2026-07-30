@@ -64,31 +64,31 @@
 :root {
   --radius: 0.625rem;
   /* Editorial: cream page, navy band, teal accent, lime secondary */
-  --cream: #FAF7F2;
-  --cream-2: #F3EEE4;
-  --charcoal: #1F1D1A;
-  --navy: #26307D;
-  --teal: #00897B;
-  --lime: #BFD730;
+  --cream: #faf7f2;
+  --cream-2: #f3eee4;
+  --charcoal: #1f1d1a;
+  --navy: #26307d;
+  --teal: #00897b;
+  --lime: #bfd730;
 
   --background: var(--cream);
   --foreground: var(--charcoal);
-  --card: #FFFFFF;
+  --card: #ffffff;
   --card-foreground: var(--charcoal);
-  --popover: #FFFFFF;
+  --popover: #ffffff;
   --popover-foreground: var(--charcoal);
   --primary: var(--teal);
   --primary-foreground: var(--cream);
   --secondary: var(--cream-2);
   --secondary-foreground: var(--charcoal);
   --muted: var(--cream-2);
-  --muted-foreground: #6B655C;
+  --muted-foreground: #6b655c;
   --accent: var(--lime);
   --accent-foreground: var(--charcoal);
-  --destructive: #B4321E;
+  --destructive: #b4321e;
   --destructive-foreground: var(--cream);
-  --border: #E4DED2;
-  --input: #E4DED2;
+  --border: #e4ded2;
+  --input: #e4ded2;
   --ring: var(--teal);
   --masthead: var(--navy);
   --masthead-foreground: var(--cream);
@@ -136,14 +136,17 @@
     line-height: 1.15;
   }
 
-  h2, h3 {
+  h2,
+  h3 {
     font-family: var(--font-serif);
     font-weight: 600;
     letter-spacing: -0.005em;
     line-height: 1.25;
   }
 
-  h4, h5, h6 {
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-serif);
     font-weight: 500;
   }

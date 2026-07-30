@@ -86,8 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "RAI Pulse — AI Governance Briefing" },
       {
         property: "og:description",
-        content:
-          "Latest updates across AI governance, regulation and responsible AI practice.",
+        content: "Latest updates across AI governance, regulation and responsible AI practice.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
