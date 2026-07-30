@@ -1,0 +1,13 @@
+{
+  "name": "rai-pulse",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Vite dev server",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "npm install --legacy-peer-deps",
+  "postAttachCommand": "bash -lc 'ss -ltn | grep -q \":8080 \" || (nohup npm run dev > /tmp/vite-dev.log 2>&1 & disown)'"
+}
