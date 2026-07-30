@@ -35,7 +35,7 @@ type NewsApiResponse = {
   message?: string;
 };
 
-function relativeDate(iso: string): string {
+export function relativeDate(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
   const diff = Date.now() - then;
@@ -63,6 +63,12 @@ const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 30_000;
 const INTRO_TIMEOUT_MS = 10_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
+const ERROR_CACHE_MS = 5 * 60 * 1_000;
+
+const DEBUG = process.env.NEWS_DEBUG === "true";
+function debugLog(...args: unknown[]) {
+  if (DEBUG) console.log(...args);
+}
 const REGION_BY_CODE: Record<string, FeedArticle["region"]> = {
   NA: "North America",
   EU: "Europe",
@@ -168,25 +174,45 @@ type Candidate = {
   imageUrl?: string;
 };
 
+type CurationPick = {
+  i?: number;
+  r?: string;
+  c?: string;
+  t?: string;
+  m?: string;
+};
+
+// Claude is asked for bare JSON but may wrap it in prose despite the prompt;
+// pull out the first top-level array and parse just that.
+export function extractJsonArray(text: string): CurationPick[] | null {
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+  return Array.isArray(parsed) ? (parsed as CurationPick[]) : null;
+}
+
 async function curateWithClaude(
   apiKey: string,
   candidates: Candidate[],
 ): Promise<
-  {
-    index: number;
-    region: FeedArticle["region"];
-    implication: string;
-    country?: string;
-    lat?: number;
-    lon?: number;
-    topic?: string;
-  }[] | null
+  | {
+      index: number;
+      region: FeedArticle["region"];
+      implication: string;
+      country?: string;
+      lat?: number;
+      lon?: number;
+      topic?: string;
+    }[]
+  | null
 > {
   const list = candidates
-    .map(
-      (c, i) =>
-        `${i}. ${c.title}\n   Source: ${c.source}\n   ${c.summary}`,
-    )
+    .map((c, i) => `${i}. ${c.title}\n   Source: ${c.source}\n   ${c.summary}`)
     .join("\n\n");
   try {
     const res = await fetchWithTimeout(
@@ -209,7 +235,7 @@ async function curateWithClaude(
     );
     if (!res.ok) {
       const errorBody = await res.text();
-      console.log("[news] Claude curation HTTP error:", res.status, errorBody);
+      console.error("[news] Claude curation HTTP error:", res.status, errorBody);
       return null;
     }
     const json = (await res.json()) as {
@@ -221,42 +247,20 @@ async function curateWithClaude(
         .map((c) => c.text as string)
         .join(" ")
         .trim() ?? "";
-    console.log("[news] Claude raw response:", text);
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) {
-      console.log("[news] Claude response had no JSON array match");
-      return null;
-    }
-    const parsed = JSON.parse(match[0]) as Array<{
-      i?: number;
-      r?: string;
-      c?: string;
-      t?: string;
-      m?: string;
-    }>;
-    if (!Array.isArray(parsed)) {
-      console.log("[news] Claude parsed response was not an array:", parsed);
+    debugLog("[news] Claude raw response:", text);
+    const parsed = extractJsonArray(text);
+    if (!parsed) {
+      console.error("[news] Claude response had no parseable JSON array:", text);
       return null;
     }
     return parsed
-      .filter(
-        (p) =>
-          typeof p.i === "number" &&
-          p.i >= 0 &&
-          p.i < candidates.length,
-      )
+      .filter((p) => typeof p.i === "number" && p.i >= 0 && p.i < candidates.length)
       .map((p) => {
         const region = REGION_BY_CODE[(p.r ?? "").toUpperCase()] ?? "Rest of World";
         const implication = (p.m ?? "").toString().trim();
-        const country =
-          typeof p.c === "string" && p.c.trim().length > 0
-            ? p.c.trim()
-            : undefined;
+        const country = typeof p.c === "string" && p.c.trim().length > 0 ? p.c.trim() : undefined;
         const coords = country ? COUNTRY_COORDS[country] : undefined;
-        const topic =
-          typeof p.t === "string" && p.t.trim().length > 0
-            ? p.t.trim()
-            : undefined;
+        const topic = typeof p.t === "string" && p.t.trim().length > 0 ? p.t.trim() : undefined;
         return {
           index: p.i as number,
           region,
@@ -269,20 +273,14 @@ async function curateWithClaude(
       })
       .slice(0, 12);
   } catch (err) {
-    console.log("[news] Claude curation error:", err);
+    console.error("[news] Claude curation error:", err);
     return null;
   }
 }
 
-async function generateIntro(
-  apiKey: string,
-  articles: FeedArticle[],
-): Promise<string | null> {
+async function generateIntro(apiKey: string, articles: FeedArticle[]): Promise<string | null> {
   const body = articles
-    .map(
-      (a, i) =>
-        `${i}. [${a.region}] ${a.title}\n   Source: ${a.source}\n   ${a.summary}`,
-    )
+    .map((a, i) => `${i}. [${a.region}] ${a.title}\n   Source: ${a.source}\n   ${a.summary}`)
     .join("\n\n");
   try {
     const res = await fetchWithTimeout(
@@ -310,7 +308,7 @@ async function generateIntro(
     );
     if (!res.ok) {
       const errorBody = await res.text();
-      console.log("[news] Claude intro HTTP error:", res.status, errorBody);
+      console.error("[news] Claude intro HTTP error:", res.status, errorBody);
       return null;
     }
     const json = (await res.json()) as {
@@ -328,6 +326,41 @@ async function generateIntro(
   }
 }
 
+// Every article link is checked against this allowlist before it renders —
+// exported for testing (`isAllowedUrl`) since it's the site's one link-safety gate.
+export const ALLOWED_DOMAINS = [
+  "bbc.co.uk",
+  "reuters.com",
+  "ft.com",
+  "politico.eu",
+  "politico.com",
+  "theverge.com",
+  "wired.com",
+  "technologyreview.com",
+  "theguardian.com",
+  "apnews.com",
+  "euractiv.com",
+  "euronews.com",
+  "dw.com",
+  "scmp.com",
+  "techcrunch.com",
+  "axios.com",
+  "aljazeera.com",
+  "restofworld.org",
+];
+
+export function isAllowedUrl(
+  articleUrl: string,
+  allowedDomains: string[] = ALLOWED_DOMAINS,
+): boolean {
+  try {
+    const host = new URL(articleUrl).hostname.replace(/^www\./, "");
+    return allowedDomains.some((d) => host === d || host.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
 async function buildPayload(): Promise<FeedPayload> {
   const key = process.env.NEWSAPI_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -340,125 +373,112 @@ async function buildPayload(): Promise<FeedPayload> {
     };
   }
 
-    // Stage 1: broad fetch. Keep the query intentionally wide — Claude filters.
-    const q = encodeURIComponent(
-      '(AI OR "artificial intelligence") AND (regulation OR governance OR policy OR regulator OR lawmakers OR "export controls" OR compliance OR oversight)',
+  // Stage 1: broad fetch. Keep the query intentionally wide — Claude filters.
+  const q = encodeURIComponent(
+    '(AI OR "artificial intelligence") AND (regulation OR governance OR policy OR regulator OR lawmakers OR "export controls" OR compliance OR oversight)',
+  );
+  const domains = ALLOWED_DOMAINS.join(",");
+  const from = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+  const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
+
+  try {
+    const res = await fetchWithTimeout(
+      url,
+      { headers: { "X-Api-Key": key, "User-Agent": "RAI-Pulse/1.0" } },
+      NEWS_TIMEOUT_MS,
     );
-    const domains =
-      "bbc.co.uk,reuters.com,ft.com,politico.eu,politico.com,theverge.com,wired.com,technologyreview.com,theguardian.com,apnews.com,euractiv.com,euronews.com,dw.com,scmp.com,techcrunch.com,axios.com,aljazeera.com,restofworld.org";
-    const from = new Date(Date.now() - 7 * 86_400_000)
-      .toISOString()
-      .slice(0, 10);
-    const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
-
-    const allowedDomains = domains.split(",");
-    const isAllowedUrl = (articleUrl: string) => {
-      try {
-        const host = new URL(articleUrl).hostname.replace(/^www\./, "");
-        return allowedDomains.some((d) => host === d || host.endsWith(`.${d}`));
-      } catch {
-        return false;
-      }
-    };
-
-    try {
-      const res = await fetchWithTimeout(
-        url,
-        { headers: { "X-Api-Key": key, "User-Agent": "RAI-Pulse/1.0" } },
-        NEWS_TIMEOUT_MS,
-      );
-      const json = (await res.json()) as NewsApiResponse;
-      if (!res.ok || json.status !== "ok" || !json.articles) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: json.message ?? `HTTP ${res.status}`,
-        };
-      }
-      // Deduplicate by URL before anything else.
-      const seen = new Set<string>();
-      const candidates: Candidate[] = json.articles
-        .filter((a) => {
-          if (!a.title || !a.description || !a.url) return false;
-          if (!isAllowedUrl(a.url)) return false;
-          if (seen.has(a.url)) return false;
-          seen.add(a.url);
-          return true;
-        })
-        .slice(0, 60)
-        .map((a) => ({
-          title: a.title as string,
-          source: a.source.name ?? "Unknown",
-          date: relativeDate(a.publishedAt),
-          summary: a.description as string,
-          url: a.url,
-          imageUrl:
-            typeof a.urlToImage === "string" && a.urlToImage.startsWith("http")
-              ? a.urlToImage
-              : undefined,
-        }));
-      console.log("[news] candidates after filter:", candidates.length);
-
-      if (candidates.length === 0) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: "No candidates after filter",
-        };
-      }
-
-      if (!anthropicKey) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: "Missing ANTHROPIC_API_KEY",
-        };
-      }
-      const picks = await curateWithClaude(anthropicKey, candidates);
-      if (!picks || picks.length === 0) {
-        return {
-          articles: [],
-          intro: null,
-          updatedAt: new Date().toISOString(),
-          error: "Curation failed",
-        };
-      }
-      console.log(
-        `[news] Claude selected ${picks.length} articles:`,
-        picks.map((p) => ({
-          region: p.region,
-          title: candidates[p.index]?.title,
-        })),
-      );
-      const articles: FeedArticle[] = picks.map((p) => ({
-        ...candidates[p.index],
-        enterpriseImplication: p.implication,
-        region: p.region,
-        country: p.country,
-        lat: p.lat,
-        lon: p.lon,
-        topic: p.topic,
-      }));
-
-      const intro = await generateIntro(anthropicKey, articles);
-
-      return {
-        articles,
-        intro,
-        updatedAt: new Date().toISOString(),
-        error: null,
-      };
-    } catch (e) {
+    const json = (await res.json()) as NewsApiResponse;
+    if (!res.ok || json.status !== "ok" || !json.articles) {
       return {
         articles: [],
         intro: null,
         updatedAt: new Date().toISOString(),
-        error: e instanceof Error ? e.message : "Failed to fetch news",
+        error: json.message ?? `HTTP ${res.status}`,
       };
     }
+    // Deduplicate by URL before anything else.
+    const seen = new Set<string>();
+    const candidates: Candidate[] = json.articles
+      .filter((a) => {
+        if (!a.title || !a.description || !a.url) return false;
+        if (!isAllowedUrl(a.url)) return false;
+        if (seen.has(a.url)) return false;
+        seen.add(a.url);
+        return true;
+      })
+      .slice(0, 60)
+      .map((a) => ({
+        title: a.title as string,
+        source: a.source.name ?? "Unknown",
+        date: relativeDate(a.publishedAt),
+        summary: a.description as string,
+        url: a.url,
+        imageUrl:
+          typeof a.urlToImage === "string" && a.urlToImage.startsWith("http")
+            ? a.urlToImage
+            : undefined,
+      }));
+    debugLog("[news] candidates after filter:", candidates.length);
+
+    if (candidates.length === 0) {
+      return {
+        articles: [],
+        intro: null,
+        updatedAt: new Date().toISOString(),
+        error: "No candidates after filter",
+      };
+    }
+
+    if (!anthropicKey) {
+      return {
+        articles: [],
+        intro: null,
+        updatedAt: new Date().toISOString(),
+        error: "Missing ANTHROPIC_API_KEY",
+      };
+    }
+    const picks = await curateWithClaude(anthropicKey, candidates);
+    if (!picks || picks.length === 0) {
+      return {
+        articles: [],
+        intro: null,
+        updatedAt: new Date().toISOString(),
+        error: "Curation failed",
+      };
+    }
+    debugLog(
+      `[news] Claude selected ${picks.length} articles:`,
+      picks.map((p) => ({
+        region: p.region,
+        title: candidates[p.index]?.title,
+      })),
+    );
+    const articles: FeedArticle[] = picks.map((p) => ({
+      ...candidates[p.index],
+      enterpriseImplication: p.implication,
+      region: p.region,
+      country: p.country,
+      lat: p.lat,
+      lon: p.lon,
+      topic: p.topic,
+    }));
+
+    const intro = await generateIntro(anthropicKey, articles);
+
+    return {
+      articles,
+      intro,
+      updatedAt: new Date().toISOString(),
+      error: null,
+    };
+  } catch (e) {
+    return {
+      articles: [],
+      intro: null,
+      updatedAt: new Date().toISOString(),
+      error: e instanceof Error ? e.message : "Failed to fetch news",
+    };
+  }
 }
 
 export { BRIEFING_UNAVAILABLE };
@@ -470,9 +490,13 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
     if (inflight) return inflight;
     inflight = buildPayload()
       .then((payload) => {
-        if (payload.error === null || payload.articles.length > 0) {
-          cache = { payload, expiresAt: Date.now() + DAY_MS };
-        }
+        const succeeded = payload.error === null || payload.articles.length > 0;
+        // Cache failures briefly too, so an upstream outage doesn't turn every
+        // visitor into a fresh NewsAPI + Claude call until it recovers.
+        cache = {
+          payload,
+          expiresAt: Date.now() + (succeeded ? DAY_MS : ERROR_CACHE_MS),
+        };
         return payload;
       })
       .finally(() => {

@@ -29,8 +29,7 @@ function inferTags(text: string): string[] {
   if (t.includes("enforcement") || t.includes("fine") || t.includes("penalt"))
     tags.push("Enforcement");
   if (t.includes("liability")) tags.push("AI Liability");
-  if (t.includes("responsible ai") || t.includes("ethics"))
-    tags.push("Responsible AI");
+  if (t.includes("responsible ai") || t.includes("ethics")) tags.push("Responsible AI");
   if (tags.length === 0) tags.push("AI Regulation");
   return tags.slice(0, 2);
 }
@@ -130,48 +129,44 @@ function Index() {
                     key={a.url}
                     className="rounded-2xl border border-border bg-card shadow-card overflow-hidden"
                   >
-                    {a.imageUrl && <ArticleImage src={a.imageUrl} alt="" />}
+                    {a.imageUrl && <ArticleImage src={a.imageUrl} alt={a.title} />}
                     <div className="p-5">
-                    <div className="min-w-0">
-                      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="font-medium text-foreground/80">
-                          {a.source}
-                        </span>
-                        <span className="text-border">·</span>
-                        <span>{a.date}</span>
-                        {a.region && (
-                          <>
-                            <span className="text-border">·</span>
-                            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                              {code && (
-                                <span className="font-bold">{code}</span>
-                              )}
-                              <span>{a.region}</span>
-                            </span>
-                          </>
+                      <div className="min-w-0">
+                        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                          <span className="font-medium text-foreground/80">{a.source}</span>
+                          <span className="text-border">·</span>
+                          <span>{a.date}</span>
+                          {a.region && (
+                            <>
+                              <span className="text-border">·</span>
+                              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                {code && <span className="font-bold">{code}</span>}
+                                <span>{a.region}</span>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <a
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-base font-semibold leading-snug text-primary hover:underline"
+                        >
+                          {a.title}
+                        </a>
+                        {a.enterpriseImplication && (
+                          <p className="mt-3 border-l-2 border-primary pl-3 text-[13px] leading-relaxed text-foreground/90">
+                            {a.enterpriseImplication}
+                          </p>
+                        )}
+                        {tags.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {tags.map((t) => (
+                              <TagBadge key={t}>{t}</TagBadge>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      <a
-                        href={a.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-base font-semibold leading-snug text-primary hover:underline"
-                      >
-                        {a.title}
-                      </a>
-                      {a.enterpriseImplication && (
-                        <p className="mt-3 border-l-2 border-primary pl-3 text-[13px] leading-relaxed text-foreground/90">
-                          {a.enterpriseImplication}
-                        </p>
-                      )}
-                      {tags.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {tags.map((t) => (
-                            <TagBadge key={t}>{t}</TagBadge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                     </div>
                   </li>
                 );
@@ -193,6 +188,7 @@ function ArticleImage({ src, alt }: { src: string; alt: string }) {
         src={src}
         alt={alt}
         loading="lazy"
+        referrerPolicy="no-referrer"
         className="h-full w-full object-cover"
         onError={() => setOk(false)}
       />

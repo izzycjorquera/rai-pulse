@@ -23,8 +23,7 @@ export const Route = createFileRoute("/read")({
       { property: "og:title", content: "Read of the Week — RAI Pulse" },
       {
         property: "og:description",
-        content:
-          "One paper or book worth your time, with a three-sentence digest.",
+        content: "One paper or book worth your time, with a three-sentence digest.",
       },
     ],
   }),
@@ -115,9 +114,7 @@ function ReadCard({ item }: { item: ReadItem }) {
           <p className="mt-2 caption text-muted-foreground">
             {item.authorOrShow} · {item.year}
           </p>
-          <p className="mt-4 text-sm leading-relaxed text-foreground/90">
-            {item.digest}
-          </p>
+          <p className="mt-4 text-sm leading-relaxed text-foreground/90">{item.digest}</p>
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <span
               className="inline-flex items-center rounded-full px-3 py-1 font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-charcoal"
@@ -154,6 +151,7 @@ function Cover({ item }: { item: ReadItem }) {
         <img
           src={item.imageUrl}
           alt={item.title}
+          referrerPolicy="no-referrer"
           className="h-full w-full object-cover"
           onError={() => setImgOk(false)}
         />
@@ -170,7 +168,10 @@ function TypographicCover({ item }: { item: ReadItem }) {
     >
       <span
         className="self-start rounded-full px-2 py-0.5 font-sans text-[9.5px] font-semibold uppercase tracking-[0.18em]"
-        style={{ backgroundColor: "color-mix(in oklab, var(--cream) 12%, transparent)", color: "var(--cream)" }}
+        style={{
+          backgroundColor: "color-mix(in oklab, var(--cream) 12%, transparent)",
+          color: "var(--cream)",
+        }}
       >
         {TYPE_LABEL[item.type]}
       </span>
@@ -181,11 +182,11 @@ function TypographicCover({ item }: { item: ReadItem }) {
         >
           {item.title}
         </h3>
-        <div
-          className="mt-3 h-[2px] w-14"
-          style={{ backgroundColor: "var(--teal)" }}
-        />
-        <p className="mt-3 font-sans text-[10.5px] uppercase tracking-[0.14em] text-cream/70" style={{ color: "color-mix(in oklab, var(--cream) 70%, transparent)" }}>
+        <div className="mt-3 h-[2px] w-14" style={{ backgroundColor: "var(--teal)" }} />
+        <p
+          className="mt-3 font-sans text-[10.5px] uppercase tracking-[0.14em] text-cream/70"
+          style={{ color: "color-mix(in oklab, var(--cream) 70%, transparent)" }}
+        >
           {item.authorOrShow} · {item.year}
         </p>
       </div>
