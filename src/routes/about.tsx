@@ -8,13 +8,12 @@ export const Route = createFileRoute("/about")({
       { title: "About — RAI Pulse" },
       {
         name: "description",
-        content:
-          "About RAI Pulse — a personal, curated briefing on AI governance, geopolitics and responsible AI.",
+        content: "About RAI Pulse — a personal, curated briefing on AI governance and geopolitics.",
       },
       { property: "og:title", content: "About — RAI Pulse" },
       {
         property: "og:description",
-        content: "A personal briefing on AI governance, geopolitics and responsible AI.",
+        content: "A personal briefing on AI governance and geopolitics.",
       },
     ],
   }),
@@ -26,7 +25,7 @@ function AboutPage() {
     <SiteLayout
       eyebrow="About"
       title="About Responsible AI Pulse"
-      description="A weekly briefing on AI governance, geopolitics and responsible AI practice."
+      description="A weekly briefing on AI governance and geopolitics."
     >
       <div className="max-w-2xl space-y-12">
         <section className="space-y-5 text-base leading-relaxed text-foreground/90">

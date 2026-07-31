@@ -94,7 +94,7 @@ function Index() {
     <SiteLayout
       eyebrow="Latest briefing"
       title="This week in AI governance"
-      description="The weekly briefing on responsible AI, from around the world."
+      description="The weekly briefing on AI governance, from around the world."
     >
       <div className="space-y-14">
         <section>
