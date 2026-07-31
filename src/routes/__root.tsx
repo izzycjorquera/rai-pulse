@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "RAI Pulse — AI Governance & Responsible AI Briefing" },
+      { title: "RAI Pulse — AI Governance Briefing for Responsible AI Practitioners" },
       {
         name: "description",
         content:
