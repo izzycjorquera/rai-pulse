@@ -14,8 +14,7 @@ export const Route = createFileRoute("/about")({
       { property: "og:title", content: "About — RAI Pulse" },
       {
         property: "og:description",
-        content:
-          "A personal briefing on AI governance, geopolitics and responsible AI.",
+        content: "A personal briefing on AI governance, geopolitics and responsible AI.",
       },
     ],
   }),
@@ -31,19 +30,16 @@ function AboutPage() {
     >
       <div className="max-w-2xl space-y-12">
         <section className="space-y-5 text-base leading-relaxed text-foreground/90">
-          <h2 className="font-serif text-xl font-semibold text-foreground">
-            About Me
-          </h2>
+          <h2 className="font-serif text-xl font-semibold text-foreground">About Me</h2>
           <p>
-            I work in responsible AI. My interest sits at the intersection of
-            AI, International Relations and ethics.
+            I work in responsible AI. My interest sits at the intersection of AI, International
+            Relations and ethics.
           </p>
           <p>
-            Most coverage stops at “a new regulation passed.” I'm interested
-            in the layer underneath: how diverging rules across regional
-            blocs create real strategic and compliance questions for large
-            enterprises, and why geopolitics is becoming impossible to
-            separate from responsible AI practice.
+            Most coverage stops at “a new regulation passed.” I'm interested in the layer
+            underneath: how diverging rules across regional blocs create real strategic and
+            compliance questions for large enterprises, and why geopolitics is becoming impossible
+            to separate from responsible AI practice.
           </p>
           <p className="pt-2 font-medium text-foreground">ISABEL JORQUERA</p>
 
@@ -68,23 +64,20 @@ function AboutPage() {
         </section>
 
         <section className="space-y-5 text-base leading-relaxed text-foreground/90">
-          <h2 className="font-serif text-xl font-semibold text-foreground">
-            About This Website
-          </h2>
+          <h2 className="font-serif text-xl font-semibold text-foreground">About This Website</h2>
           <p>
-            I built RAI Pulse to solve my own problem: keeping up with AI
-            governance news is easy; understanding what it actually means for
-            organisations is not. RAI Pulse is where I put that lens to work —
-            a weekly briefing that tracks what's happening and translates why
-            it matters.
+            I built RAI Pulse to solve my own problem: keeping up with AI governance news is easy;
+            understanding what it actually means for organisations is not. RAI Pulse is where I put
+            that lens to work — a weekly briefing that tracks what's happening and translates why it
+            matters.
           </p>
           <p>
-            Everything here is analysis, not opinion. The perspective shows
-            what I choose to cover and which implications I flag.
+            Everything here is analysis, not opinion. The perspective shows what I choose to cover
+            and which implications I flag.
           </p>
           <p>
-            I built this site myself as an exercise in applied AI. The
-            summaries are AI-assisted, the judgment is mine.
+            I built this site myself as an exercise in applied AI. The summaries are AI-assisted,
+            the judgment is mine.
           </p>
         </section>
       </div>

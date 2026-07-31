@@ -28,7 +28,7 @@ export const READS: ReadItem[] = [
     authorOrShow: "Olivia Gambelin",
     year: "2024",
     digest:
-      "Gambelin, an AI ethicist and founder of Ethical Intelligence, lays out a practical playbook for embedding ethics into AI development rather than treating it as a compliance afterthought. She introduces the concept of \"values-based innovation,\" showing teams how to translate abstract principles into concrete design decisions, governance structures and decision-making frameworks. The book's key message is that responsible AI is a competitive advantage, not a constraint — organizations that build trust into their products early will outlast those that bolt on ethics after the fact.",
+      'Gambelin, an AI ethicist and founder of Ethical Intelligence, lays out a practical playbook for embedding ethics into AI development rather than treating it as a compliance afterthought. She introduces the concept of "values-based innovation," showing teams how to translate abstract principles into concrete design decisions, governance structures and decision-making frameworks. The book\'s key message is that responsible AI is a competitive advantage, not a constraint — organizations that build trust into their products early will outlast those that bolt on ethics after the fact.',
     whyItMatters: "Playbook for practitioners",
     link: "https://www.amazon.com/Responsible-AI-Implement-Approach-Organization/dp/1398615706",
   },
