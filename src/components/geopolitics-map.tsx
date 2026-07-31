@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import type { FeedArticle } from "@/lib/news.functions";
 
@@ -48,6 +48,9 @@ function groupByCountry(articles: FeedArticle[]): CountryGroup[] {
 export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
   const groups = useMemo(() => groupByCountry(articles), [articles]);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const selected = (selectedCountry && groups.find((g) => g.country === selectedCountry)) || null;
 
   return (
