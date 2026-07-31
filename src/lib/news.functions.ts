@@ -365,6 +365,7 @@ async function buildPayload(): Promise<FeedPayload> {
   const key = process.env.NEWSAPI_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!key) {
+    console.error("[news] Missing NEWSAPI_KEY");
     return {
       articles: [],
       intro: null,
@@ -389,6 +390,7 @@ async function buildPayload(): Promise<FeedPayload> {
     );
     const json = (await res.json()) as NewsApiResponse;
     if (!res.ok || json.status !== "ok" || !json.articles) {
+      console.error("[news] NewsAPI HTTP error:", res.status, json.message);
       return {
         articles: [],
         intro: null,
@@ -421,6 +423,7 @@ async function buildPayload(): Promise<FeedPayload> {
     debugLog("[news] candidates after filter:", candidates.length);
 
     if (candidates.length === 0) {
+      console.error("[news] No candidates after filter");
       return {
         articles: [],
         intro: null,
@@ -430,6 +433,7 @@ async function buildPayload(): Promise<FeedPayload> {
     }
 
     if (!anthropicKey) {
+      console.error("[news] Missing ANTHROPIC_API_KEY");
       return {
         articles: [],
         intro: null,
@@ -439,6 +443,7 @@ async function buildPayload(): Promise<FeedPayload> {
     }
     const picks = await curateWithClaude(anthropicKey, candidates);
     if (!picks || picks.length === 0) {
+      console.error("[news] Curation failed");
       return {
         articles: [],
         intro: null,
@@ -472,6 +477,7 @@ async function buildPayload(): Promise<FeedPayload> {
       error: null,
     };
   } catch (e) {
+    console.error("[news] buildPayload error:", e);
     return {
       articles: [],
       intro: null,
