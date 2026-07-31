@@ -32,6 +32,14 @@ export const READS: ReadItem[] = [
     whyItMatters: "Playbook for practitioners",
     link: "https://www.amazon.com/Responsible-AI-Implement-Approach-Organization/dp/1398615706",
   },
-  // Add a podcast pick here once you have a real one — the placeholder
-  // entry that used to sit here was shipping to production.
+  {
+    type: "listen",
+    title: "Can We Govern AI? with Marietje Schaake",
+    authorOrShow: "Your Undivided Attention",
+    year: "2024",
+    digest:
+      "Schaake, who helped write the EU's landmark tech regulations as a member of the European Parliament, walks hosts Tristan Harris and Aza Raskin through why AI is uniquely hard to govern: the data and models stay locked inside private companies, and constant updates mean there's no fixed product left to regulate. She argues democratic institutions can still keep pace with AI, but only by treating governance as continuous oversight rather than a one-time law. The episode's key message is that the choice isn't between regulation and innovation — it's between AI shaped by democratic input or shaped entirely by the companies building it.",
+    whyItMatters: "Governance in real time",
+    link: "https://www.humanetech.com/podcast/can-we-govern-ai",
+  },
 ];

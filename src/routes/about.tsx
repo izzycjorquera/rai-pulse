@@ -35,15 +35,15 @@ function AboutPage() {
             About Me
           </h2>
           <p>
-            I work in responsible AI, and I built RAI Pulse to solve my own
-            problem: keeping up with AI governance news is easy; understanding
-            what it actually means for organisations is not.
+            I work in responsible AI. My interest sits at the intersection of
+            AI, International Relations and ethics.
           </p>
           <p>
-            My interest sits at the intersection of AI, International
-            Relations and ethics. RAI Pulse is where I put that lens to work;
-            a weekly briefing that tracks what's happening and translates why
-            it matters.
+            Most coverage stops at “a new regulation passed.” I'm interested
+            in the layer underneath: how diverging rules across regional
+            blocs create real strategic and compliance questions for large
+            enterprises, and why geopolitics is becoming impossible to
+            separate from responsible AI practice.
           </p>
           <p className="pt-2 font-medium text-foreground">ISABEL JORQUERA</p>
 
@@ -72,11 +72,11 @@ function AboutPage() {
             About This Website
           </h2>
           <p>
-            Most coverage stops at “a new regulation passed.” I'm interested
-            in the layer underneath: how diverging rules across regional
-            blocs create real strategic and compliance questions for large
-            enterprises, and why geopolitics is becoming impossible to
-            separate from responsible AI practice.
+            I built RAI Pulse to solve my own problem: keeping up with AI
+            governance news is easy; understanding what it actually means for
+            organisations is not. RAI Pulse is where I put that lens to work —
+            a weekly briefing that tracks what's happening and translates why
+            it matters.
           </p>
           <p>
             Everything here is analysis, not opinion. The perspective shows
