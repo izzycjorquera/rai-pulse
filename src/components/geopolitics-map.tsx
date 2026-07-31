@@ -56,83 +56,92 @@ export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
       <div className="relative overflow-hidden rounded-2xl border border-border bg-masthead shadow-card">
-        <ComposableMap
-          projectionConfig={{ scale: 155 }}
-          width={900}
-          height={480}
-          style={{ width: "100%", height: "auto", display: "block" }}
-        >
-          <Geographies geography={GEO_URL}>
-            {({ geographies }) =>
-              geographies.map((geo) => (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  style={{
-                    default: {
-                      fill: "#F3EEE4",
-                      stroke: "#26307D",
-                      strokeWidth: 0.4,
-                      outline: "none",
-                    },
-                    hover: {
-                      fill: "#FAF7F2",
-                      outline: "none",
-                    },
-                    pressed: {
-                      fill: "#FAF7F2",
-                      outline: "none",
-                    },
-                  }}
-                />
-              ))
-            }
-          </Geographies>
-          {groups.map((g) => {
-            const isSelected = selected?.country === g.country;
-            const count = g.articles.length;
-            return (
-              <Marker
-                key={g.country}
-                coordinates={[g.lon, g.lat]}
-                onClick={() => setSelectedCountry(g.country)}
-                style={{
-                  default: { cursor: "pointer", outline: "none" },
-                  hover: { cursor: "pointer", outline: "none" },
-                  pressed: { cursor: "pointer", outline: "none" },
-                }}
-              >
-                <circle r={isSelected ? 10 : 8} fill="var(--primary)" opacity={0.25} />
-                <circle
-                  r={isSelected ? 5 : 4}
-                  fill="var(--primary)"
-                  stroke="#FAF7F2"
-                  strokeWidth={1.5}
-                />
-                {count > 1 && (
-                  <g transform="translate(6, -6)">
-                    <circle r={6} fill="var(--lime)" stroke="#26307D" strokeWidth={0.75} />
-                    <text
-                      textAnchor="middle"
-                      dy="0.35em"
-                      fontSize={8}
-                      fontWeight={700}
-                      fill="#1F1D1A"
-                    >
-                      {count}
-                    </text>
-                  </g>
-                )}
-                <title>
-                  {g.country} — {count} {count === 1 ? "story" : "stories"}
-                </title>
-              </Marker>
-            );
-          })}
-        </ComposableMap>
-        {groups.length === 0 && (
+        {mounted && (
+          <>
+            <ComposableMap
+              projectionConfig={{ scale: 155 }}
+              width={900}
+              height={480}
+              style={{ width: "100%", height: "auto", display: "block" }}
+            >
+              <Geographies geography={GEO_URL}>
+                {({ geographies }) =>
+                  geographies.map((geo) => (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      style={{
+                        default: {
+                          fill: "#F3EEE4",
+                          stroke: "#26307D",
+                          strokeWidth: 0.4,
+                          outline: "none",
+                        },
+                        hover: {
+                          fill: "#FAF7F2",
+                          outline: "none",
+                        },
+                        pressed: {
+                          fill: "#FAF7F2",
+                          outline: "none",
+                        },
+                      }}
+                    />
+                  ))
+                }
+              </Geographies>
+              {groups.map((g) => {
+                const isSelected = selected?.country === g.country;
+                const count = g.articles.length;
+                return (
+                  <Marker
+                    key={g.country}
+                    coordinates={[g.lon, g.lat]}
+                    onClick={() => setSelectedCountry(g.country)}
+                    style={{
+                      default: { cursor: "pointer", outline: "none" },
+                      hover: { cursor: "pointer", outline: "none" },
+                      pressed: { cursor: "pointer", outline: "none" },
+                    }}
+                  >
+                    <circle r={isSelected ? 10 : 8} fill="var(--primary)" opacity={0.25} />
+                    <circle
+                      r={isSelected ? 5 : 4}
+                      fill="var(--primary)"
+                      stroke="#FAF7F2"
+                      strokeWidth={1.5}
+                    />
+                    {count > 1 && (
+                      <g transform="translate(6, -6)">
+                        <circle r={6} fill="var(--lime)" stroke="#26307D" strokeWidth={0.75} />
+                        <text
+                          textAnchor="middle"
+                          dy="0.35em"
+                          fontSize={8}
+                          fontWeight={700}
+                          fill="#1F1D1A"
+                        >
+                          {count}
+                        </text>
+                      </g>
+                    )}
+                    <title>
+                      {g.country} — {count} {count === 1 ? "story" : "stories"}
+                    </title>
+                  </Marker>
+                );
+              })}
+            </ComposableMap>
+            {groups.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-masthead-foreground/70">
+                No mapped stories this week.
+              </div>
+            )}
+          </>
+        )}
+        {!mounted && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-masthead-foreground/70">
-            No mapped stories this week.
+            Loading map…
           </div>
         )}
       </div>
