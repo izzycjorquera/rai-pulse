@@ -18,12 +18,12 @@ export const Route = createFileRoute("/read")({
       {
         name: "description",
         content:
-          "One paper or book worth your time, with a three-sentence digest for responsible AI practitioners.",
+          "One paper or book worth your time, with a short digest for responsible AI practitioners.",
       },
       { property: "og:title", content: "Read of the Week — RAI Pulse" },
       {
         property: "og:description",
-        content: "One paper or book worth your time, with a three-sentence digest.",
+        content: "One paper or book worth your time, with a short digest.",
       },
     ],
   }),
@@ -62,7 +62,7 @@ function ReadOfTheWeekPage() {
     <SiteLayout
       eyebrow="Deep dive"
       title="Read of the week"
-      description="One paper or book worth your time, with a three-sentence digest."
+      description="One paper or book worth your time, with a short digest."
     >
       <Carousel setApi={setApi} opts={{ align: "start", loop: false }}>
         <CarouselContent>

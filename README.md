@@ -4,9 +4,9 @@ A personal, curated briefing on AI governance — regulation, standards, enforce
 
 **Live sections:**
 
-- **This week** — the 12 most significant AI governance stories of the week, drawn from a fixed allowlist of quality sources (Reuters, FT, Politico, BBC, MIT Tech Review and others), each tagged with region, country and topic and annotated with a one-sentence, AI-generated enterprise implication, plus a synthesized intro paragraph
+- **This week** — the 12 most significant AI governance stories of the week, drawn from a fixed allowlist of quality sources (Reuters, FT, Politico, BBC, MIT Tech Review and others), each tagged with region, country and topic and annotated with a two-sentence, AI-generated takeaway (the development plus its enterprise implication), plus a synthesized intro paragraph
 - **Geopolitics map** — the same week's stories plotted on a four-region map (North America, Europe, Asia-Pacific, Rest of World), grouped by country
-- **Radar** — upcoming deadlines, open consultations and enforcement signals
+- **Radar** — upcoming compliance deadlines
 - **Read of the week** — one paper, book or podcast worth your time, with a short digest
 
 ## How the AI annotation works

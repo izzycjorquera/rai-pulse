@@ -9,8 +9,7 @@ export const Route = createFileRoute("/radar")({
       { title: "Radar — RAI Pulse" },
       {
         name: "description",
-        content:
-          "Upcoming AI governance deadlines, open consultations and enforcement actions worth watching.",
+        content: "Upcoming AI governance compliance deadlines worth watching.",
       },
       { property: "og:title", content: "Radar — RAI Pulse" },
       {
@@ -166,7 +165,7 @@ function RadarPage() {
     <SiteLayout
       eyebrow="What to watch"
       title="Radar"
-      description="Upcoming deadlines, open consultations and enforcement signals across the AI governance landscape."
+      description="Upcoming compliance deadlines across the AI governance landscape."
     >
       <div className="relative">
         <div className="absolute left-0 top-2 bottom-0 w-px bg-primary/30" />

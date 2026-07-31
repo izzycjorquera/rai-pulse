@@ -101,7 +101,7 @@ function Index() {
           <SectionHeading
             eyebrow="This week"
             title="The stories that matter"
-            description="The 8–10 most significant responsible-AI stories of the week, ranked by significance for enterprise readers."
+            description="The 12 most significant responsible-AI stories of the week, ranked by significance for enterprise readers."
           />
           <UpdatedLabel updatedAt={feed.updatedAt} />
           {unavailable && (

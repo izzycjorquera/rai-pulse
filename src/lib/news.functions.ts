@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { weeklyExpiresAt } from "./cache-schedule";
 
 export type FeedArticle = {
   title: string;
@@ -62,7 +63,6 @@ const BRIEFING_UNAVAILABLE = "Briefing temporarily unavailable.";
 const NEWS_TIMEOUT_MS = 6_000;
 const CURATION_TIMEOUT_MS = 90_000;
 const INTRO_TIMEOUT_MS = 20_000;
-const DAY_MS = 24 * 60 * 60 * 1_000;
 const ERROR_CACHE_MS = 5 * 60 * 1_000;
 
 const DEBUG = process.env.NEWS_DEBUG === "true";
@@ -501,7 +501,7 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
         // visitor into a fresh NewsAPI + Claude call until it recovers.
         cache = {
           payload,
-          expiresAt: Date.now() + (succeeded ? DAY_MS : ERROR_CACHE_MS),
+          expiresAt: succeeded ? weeklyExpiresAt() : Date.now() + ERROR_CACHE_MS,
         };
         return payload;
       })
