@@ -60,8 +60,8 @@ const INTRO_PROMPT =
 const BRIEFING_UNAVAILABLE = "Briefing temporarily unavailable.";
 
 const NEWS_TIMEOUT_MS = 6_000;
-const CURATION_TIMEOUT_MS = 30_000;
-const INTRO_TIMEOUT_MS = 10_000;
+const CURATION_TIMEOUT_MS = 90_000;
+const INTRO_TIMEOUT_MS = 20_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
 const ERROR_CACHE_MS = 5 * 60 * 1_000;
 
@@ -406,7 +406,7 @@ async function buildPayload(): Promise<FeedPayload> {
         seen.add(a.url);
         return true;
       })
-      .slice(0, 60)
+      .slice(0, 40)
       .map((a) => ({
         title: a.title as string,
         source: a.source.name ?? "Unknown",
