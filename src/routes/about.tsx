@@ -31,14 +31,19 @@ function AboutPage() {
         <section className="space-y-5 text-base leading-relaxed text-foreground/90">
           <h2 className="font-serif text-xl font-semibold text-foreground">About Me</h2>
           <p>
-            I work in responsible AI. My interest sits at the intersection of AI, International
-            Relations and ethics.
+            I'm a Responsible AI Analyst at Swift, where I support the governance tools, frameworks
+            and assessments that help ensure AI is deployed in line with ethical principles and
+            regulatory expectations.
           </p>
           <p>
-            Most coverage stops at “a new regulation passed.” I'm interested in the layer
-            underneath: how diverging rules across regional blocs create real strategic and
-            compliance questions for large enterprises, and why geopolitics is becoming impossible
-            to separate from responsible AI practice.
+            My background is in international politics. I came to responsible AI from the questions
+            of ethics, power and accountability that sit underneath the technology, rather than from
+            engineering. That lens shapes how I read this space.
+          </p>
+          <p>
+            Alongside my work in AI governance, I care about the broader intersection of business,
+            technology and society; how organisations can be held to account and drive positive
+            change, not just stay compliant.
           </p>
           <p className="pt-2 font-medium text-foreground">ISABEL JORQUERA</p>
 
@@ -66,17 +71,18 @@ function AboutPage() {
           <h2 className="font-serif text-xl font-semibold text-foreground">About This Website</h2>
           <p>
             I built RAI Pulse to solve my own problem: keeping up with AI governance news is easy;
-            understanding what it actually means for organisations is not. RAI Pulse is where I put
-            that lens to work — a weekly briefing that tracks what's happening and translates why it
-            matters.
+            understanding what it actually means for organisations is not. It's a weekly briefing
+            that tracks what's happening across AI governance and translates why it matters — going
+            past “a new regulation passed” to the strategic and compliance questions underneath,
+            particularly as rules diverge across regional blocs.
           </p>
           <p>
-            Everything here is analysis, not opinion. The perspective shows what I choose to cover
-            and which implications I flag.
+            Everything here is analysis, not opinion. The perspective shows in what I choose to
+            cover and which implications I flag.
           </p>
           <p>
-            I built this site myself as an exercise in applied AI. The summaries are AI-assisted,
-            the judgment is mine.
+            I also built the site itself, as an exercise in applied AI. The summaries are
+            AI-assisted; the judgment is mine.
           </p>
         </section>
       </div>
