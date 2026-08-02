@@ -48,7 +48,7 @@ export const MILESTONES: Milestone[] = [
     description:
       "The deferred core of the AI Act: full provider and deployer obligations for stand-alone high-risk systems in areas like employment, credit, education, and essential services.",
     implication:
-      "Multinationals with EU operations get sixteen extra months — an extension of time, not a relaxation of the underlying obligations.",
+      "Multinationals with EU operations get sixteen extra months: an extension of time, not a relaxation of the underlying obligations.",
     status: "upcoming",
   },
   {

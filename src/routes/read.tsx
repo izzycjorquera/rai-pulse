@@ -14,13 +14,13 @@ import { READS, type ReadItem, type ReadType } from "@/content/reads";
 export const Route = createFileRoute("/read")({
   head: () => ({
     meta: [
-      { title: "Read of the Week — RAI Pulse" },
+      { title: "Read of the Week | RAI Pulse" },
       {
         name: "description",
         content:
           "One paper or book worth your time, with a short digest for responsible AI practitioners.",
       },
-      { property: "og:title", content: "Read of the Week — RAI Pulse" },
+      { property: "og:title", content: "Read of the Week | RAI Pulse" },
       {
         property: "og:description",
         content: "One paper or book worth your time, with a short digest.",

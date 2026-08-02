@@ -27,7 +27,7 @@ export function SiteLayout({
           <Link
             to="/"
             className="wordmark inline-flex items-center justify-center gap-5 sm:gap-8"
-            aria-label="Responsible AI Pulse — home"
+            aria-label="Responsible AI Pulse: home"
           >
             <span>Responsible</span>
             <LogoSlot />
