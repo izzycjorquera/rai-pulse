@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "RAI Pulse — AI Governance Briefing for Responsible AI Practitioners" },
+      { title: "RAI Pulse | AI Governance Briefing for Responsible AI Practitioners" },
       {
         name: "description",
         content:
           "A curated briefing on AI governance, the EU AI Act, enforcement and global responsible AI frameworks.",
       },
-      { property: "og:title", content: "RAI Pulse — AI Governance Briefing" },
+      { property: "og:title", content: "RAI Pulse | AI Governance Briefing" },
       {
         property: "og:description",
         content: "Latest updates across AI governance, regulation and geopolitics.",

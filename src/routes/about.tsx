@@ -5,12 +5,12 @@ import { Linkedin } from "lucide-react";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About — RAI Pulse" },
+      { title: "About | RAI Pulse" },
       {
         name: "description",
-        content: "About RAI Pulse — a personal, curated briefing on AI governance and geopolitics.",
+        content: "About RAI Pulse: a personal, curated briefing on AI governance and geopolitics.",
       },
-      { property: "og:title", content: "About — RAI Pulse" },
+      { property: "og:title", content: "About | RAI Pulse" },
       {
         property: "og:description",
         content: "A personal briefing on AI governance and geopolitics.",
@@ -72,7 +72,7 @@ function AboutPage() {
           <p>
             I built RAI Pulse to solve my own problem: keeping up with AI governance news is easy;
             understanding what it actually means for organisations is not. It's a weekly briefing
-            that tracks what's happening across AI governance and translates why it matters — going
+            that tracks what's happening across AI governance and translates why it matters: going
             past “a new regulation passed” to the strategic and compliance questions underneath,
             particularly as rules diverge across regional blocs.
           </p>

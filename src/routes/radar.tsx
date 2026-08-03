@@ -6,12 +6,12 @@ import { MILESTONES, type Milestone } from "@/content/radar";
 export const Route = createFileRoute("/radar")({
   head: () => ({
     meta: [
-      { title: "Radar — RAI Pulse" },
+      { title: "Radar | RAI Pulse" },
       {
         name: "description",
         content: "Upcoming AI governance compliance deadlines worth watching.",
       },
-      { property: "og:title", content: "Radar — RAI Pulse" },
+      { property: "og:title", content: "Radar | RAI Pulse" },
       {
         property: "og:description",
         content: "What's coming next in AI governance, at a glance.",

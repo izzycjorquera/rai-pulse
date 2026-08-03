@@ -126,7 +126,7 @@ export function GeopoliticsMap({ articles }: { articles: FeedArticle[] }) {
                       </g>
                     )}
                     <title>
-                      {g.country} — {count} {count === 1 ? "story" : "stories"}
+                      {g.country} · {count} {count === 1 ? "story" : "stories"}
                     </title>
                   </Marker>
                 );
