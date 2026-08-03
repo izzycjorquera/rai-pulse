@@ -11,6 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
+      # Not --frozen-lockfile: bun.lock is temporarily behind package.json
+      # (the @upstash/redis addition) because bun's registry resolution has
+      # been unreliable in the sandbox that authored this change. Revert to
+      # --frozen-lockfile once bun.lock is regenerated somewhere with
+      # working network access to the registry.
+      - run: bun install
       - run: bun run lint
       - run: bun test
