@@ -101,7 +101,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;500;600;700&family=Montserrat:wght@500;600;700&family=Playfair+Display:wght@600;700;800&display=swap",
+        // Weights trimmed to what's actually used in styles.css/JSX: Inter
+        // needs all five (body default, .caption, and font-medium/semibold/
+        // bold utilities); Lora only appears at 600 (h2/h3 + font-serif +
+        // font-semibold); Playfair Display only at 600/700 (h1 + font-bold/
+        // font-semibold); Montserrat only at 700 (the .wordmark utility).
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@600&family=Montserrat:wght@700&family=Playfair+Display:wght@600;700&display=swap",
       },
     ],
   }),
