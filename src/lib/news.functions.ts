@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { Redis } from "@upstash/redis";
 import { weeklyExpiresAt } from "./cache-schedule";
 
 export type FeedArticle = {
@@ -150,6 +151,41 @@ const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
 
 let cache: { payload: FeedPayload; expiresAt: number } | null = null;
 let inflight: Promise<FeedPayload> | null = null;
+
+// Persists last week's selected article URLs across deploys and cold starts
+// (the in-memory `cache` above doesn't survive either). Falls back to
+// `cache` alone when Redis isn't configured, e.g. local dev.
+const PREVIOUS_URLS_KEY = "rai-pulse:previous-article-urls";
+
+function getRedisClient(): Redis | null {
+  const url = process.env.STORAGE_KV_REST_API_URL;
+  const token = process.env.STORAGE_KV_REST_API_TOKEN;
+  if (!url || !token) return null;
+  return new Redis({ url, token });
+}
+
+async function getPreviousArticleUrls(): Promise<Set<string>> {
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      const stored = await redis.get<string[]>(PREVIOUS_URLS_KEY);
+      if (stored) return new Set(stored);
+    } catch (err) {
+      console.error("[news] Failed to read previous article URLs from Redis:", err);
+    }
+  }
+  return new Set((cache?.payload.articles ?? []).map((a) => a.url));
+}
+
+async function savePreviousArticleUrls(urls: string[]): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis) return;
+  try {
+    await redis.set(PREVIOUS_URLS_KEY, urls);
+  } catch (err) {
+    console.error("[news] Failed to save article URLs to Redis:", err);
+  }
+}
 
 async function fetchWithTimeout(
   input: string,
@@ -384,9 +420,9 @@ async function buildPayload(): Promise<FeedPayload> {
 
   // Exclude last week's selected articles from the candidate pool so a story
   // that's still within the 7-day NewsAPI window can't be picked twice in a
-  // row. Best-effort only: `cache` is in-memory, so this has no effect if the
-  // server process was recycled since the last refresh.
-  const previousUrls = new Set((cache?.payload.articles ?? []).map((a) => a.url));
+  // row. Backed by Redis so it survives deploys and cold starts, not just
+  // whatever's left in the in-memory cache.
+  const previousUrls = await getPreviousArticleUrls();
 
   try {
     const res = await fetchWithTimeout(
@@ -474,6 +510,10 @@ async function buildPayload(): Promise<FeedPayload> {
       lon: p.lon,
       topic: p.topic,
     }));
+
+    // Awaited, not fire-and-forget: Vercel can freeze the function right
+    // after the response is sent, which would silently drop an unawaited write.
+    await savePreviousArticleUrls(articles.map((a) => a.url));
 
     const intro = await generateIntro(anthropicKey, articles);
 
