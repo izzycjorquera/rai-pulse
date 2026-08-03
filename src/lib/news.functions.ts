@@ -149,13 +149,18 @@ const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   Colombia: { lat: 4.711, lon: -74.0721 },
 };
 
-let cache: { payload: FeedPayload; expiresAt: number } | null = null;
+type CacheEntry = { payload: FeedPayload; expiresAt: number };
+
+let cache: CacheEntry | null = null;
 let inflight: Promise<FeedPayload> | null = null;
 
-// Persists last week's selected article URLs across deploys and cold starts
-// (the in-memory `cache` above doesn't survive either). Falls back to
-// `cache` alone when Redis isn't configured, e.g. local dev.
-const PREVIOUS_URLS_KEY = "rai-pulse:previous-article-urls";
+// Persists the whole weekly cache entry (not just the in-memory `cache`
+// above) so a deploy or serverless cold start recovers this week's already-
+// generated briefing instead of regenerating it from scratch. Without this,
+// every deploy during the week would force a brand new NewsAPI + Claude
+// curation run, not just a timestamp change. Falls back to in-memory `cache`
+// alone when Redis isn't configured, e.g. local dev.
+const FEED_CACHE_KEY = "rai-pulse:feed-cache";
 
 function getRedisClient(): Redis | null {
   const url = process.env.STORAGE_KV_REST_API_URL;
@@ -164,27 +169,31 @@ function getRedisClient(): Redis | null {
   return new Redis({ url, token });
 }
 
-async function getPreviousArticleUrls(): Promise<Set<string>> {
+async function getPersistedCache(): Promise<CacheEntry | null> {
   const redis = getRedisClient();
-  if (redis) {
-    try {
-      const stored = await redis.get<string[]>(PREVIOUS_URLS_KEY);
-      if (stored) return new Set(stored);
-    } catch (err) {
-      console.error("[news] Failed to read previous article URLs from Redis:", err);
-    }
+  if (!redis) return null;
+  try {
+    return await redis.get<CacheEntry>(FEED_CACHE_KEY);
+  } catch (err) {
+    console.error("[news] Failed to read feed cache from Redis:", err);
+    return null;
   }
-  return new Set((cache?.payload.articles ?? []).map((a) => a.url));
 }
 
-async function savePreviousArticleUrls(urls: string[]): Promise<void> {
+async function savePersistedCache(entry: CacheEntry): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   try {
-    await redis.set(PREVIOUS_URLS_KEY, urls);
+    await redis.set(FEED_CACHE_KEY, entry);
   } catch (err) {
-    console.error("[news] Failed to save article URLs to Redis:", err);
+    console.error("[news] Failed to save feed cache to Redis:", err);
   }
+}
+
+async function getPreviousArticleUrls(): Promise<Set<string>> {
+  if (cache) return new Set(cache.payload.articles.map((a) => a.url));
+  const persisted = await getPersistedCache();
+  return new Set((persisted?.payload.articles ?? []).map((a) => a.url));
 }
 
 async function fetchWithTimeout(
@@ -511,10 +520,6 @@ async function buildPayload(): Promise<FeedPayload> {
       topic: p.topic,
     }));
 
-    // Awaited, not fire-and-forget: Vercel can freeze the function right
-    // after the response is sent, which would silently drop an unawaited write.
-    await savePreviousArticleUrls(articles.map((a) => a.url));
-
     const intro = await generateIntro(anthropicKey, articles);
 
     return {
@@ -540,16 +545,30 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
   async (): Promise<FeedPayload> => {
     const now = Date.now();
     if (cache && cache.expiresAt > now) return cache.payload;
+
+    // Recover this week's already-generated briefing from Redis before
+    // falling back to a fresh build — otherwise a deploy or cold start would
+    // regenerate the whole feed mid-week instead of just losing a timestamp.
+    const persisted = await getPersistedCache();
+    if (persisted && persisted.expiresAt > now) {
+      cache = persisted;
+      return persisted.payload;
+    }
+
     if (inflight) return inflight;
     inflight = buildPayload()
-      .then((payload) => {
+      .then(async (payload) => {
         const succeeded = payload.error === null || payload.articles.length > 0;
         // Cache failures briefly too, so an upstream outage doesn't turn every
         // visitor into a fresh NewsAPI + Claude call until it recovers.
-        cache = {
+        const entry: CacheEntry = {
           payload,
           expiresAt: succeeded ? weeklyExpiresAt() : Date.now() + ERROR_CACHE_MS,
         };
+        cache = entry;
+        // Awaited, not fire-and-forget: Vercel can freeze the function right
+        // after the response is sent, which would silently drop an unawaited write.
+        await savePersistedCache(entry);
         return payload;
       })
       .finally(() => {
