@@ -382,6 +382,12 @@ async function buildPayload(): Promise<FeedPayload> {
   const from = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
   const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
 
+  // Exclude last week's selected articles from the candidate pool so a story
+  // that's still within the 7-day NewsAPI window can't be picked twice in a
+  // row. Best-effort only: `cache` is in-memory, so this has no effect if the
+  // server process was recycled since the last refresh.
+  const previousUrls = new Set((cache?.payload.articles ?? []).map((a) => a.url));
+
   try {
     const res = await fetchWithTimeout(
       url,
@@ -405,6 +411,7 @@ async function buildPayload(): Promise<FeedPayload> {
         if (!a.title || !a.description || !a.url) return false;
         if (!isAllowedUrl(a.url)) return false;
         if (seen.has(a.url)) return false;
+        if (previousUrls.has(a.url)) return false;
         seen.add(a.url);
         return true;
       })
