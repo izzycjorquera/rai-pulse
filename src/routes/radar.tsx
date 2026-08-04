@@ -104,6 +104,17 @@ function TimelineItem({ milestone }: { milestone: Milestone }) {
         <p className="mt-3 border-l-2 border-primary pl-3 text-[13px] leading-relaxed text-foreground/90">
           {milestone.implication}
         </p>
+        {milestone.sourceUrl && (
+          <a
+            href={milestone.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+            className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-primary hover:underline"
+          >
+            Source →
+          </a>
+        )}
       </div>
     </li>
   );
@@ -150,6 +161,17 @@ function RecentlyInForce({ milestones }: { milestones: Milestone[] }) {
               <p className="mt-3 border-l-2 border-primary pl-3 text-[13px] leading-relaxed text-foreground/90">
                 {m.implication}
               </p>
+              {m.sourceUrl && (
+                <a
+                  href={m.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
+                  className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-primary hover:underline"
+                >
+                  Source →
+                </a>
+              )}
             </div>
           ))}
         </div>
