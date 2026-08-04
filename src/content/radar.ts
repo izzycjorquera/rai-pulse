@@ -8,9 +8,46 @@ export interface Milestone {
   description: string;
   implication: string;
   status: MilestoneStatus;
+  /** Official/primary source, shown as a link for readers to verify. */
+  sourceUrl?: string;
 }
 
 export const MILESTONES: Milestone[] = [
+  {
+    date: "2025-09-01",
+    jurisdiction: "China",
+    title: "AI-generated content labelling rules take effect",
+    description:
+      "The Measures for Labelling AI-Generated Synthetic Content, alongside the mandatory standard GB 45438-2025, require both visible and implicit (metadata) labels on AI-generated content distributed in China.",
+    implication:
+      "Platforms and product teams serving Chinese users need dual labelling in place; contrast with the EU's Article 50 regime below, which tackles the same problem with a different mechanism.",
+    status: "in-force",
+    sourceUrl: "https://www.cac.gov.cn/",
+  },
+  {
+    date: "2026-01-01",
+    jurisdiction: "Texas, US",
+    title: "TRAIGA (Texas Responsible AI Governance Act) takes effect",
+    description:
+      "An intent-based liability framework prohibiting specific harmful AI uses (behavioural manipulation, unlawful discrimination, certain deepfakes), with obligations concentrated on government agencies. Enforcement sits exclusively with the Texas Attorney General: no private right of action, a 60-day cure period, and civil penalties up to $200,000 per violation.",
+    implication:
+      "A narrower, prohibition-focused model, a deliberate contrast to Colorado's risk-based approach below. Watch the federal-preemption debate: proposed federal action could limit or override state AI laws like this one.",
+    status: "in-force",
+    sourceUrl:
+      "https://www.texasattorneygeneral.gov/consumer-protection/file-consumer-complaint/consumer-ai-rights",
+  },
+  {
+    date: "2026-01-01",
+    jurisdiction: "California, US",
+    title: "Transparency in Frontier AI Act (TFAIA / SB 53) takes effect",
+    description:
+      "The first US state law aimed squarely at frontier model developers (those training above 10^26 FLOPs). Requires published safety frameworks, transparency reports, and critical-incident reporting to state regulators, enforced by the California AG with penalties up to $1M per violation.",
+    implication:
+      "A third distinct US model, developer-and-transparency-focused rather than deployer-risk-focused. Texas, Colorado and California now show three states solving the same problem three different ways.",
+    status: "in-force",
+    sourceUrl:
+      "https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202520260SB53",
+  },
   {
     date: "2026-08-02",
     jurisdiction: "EU",
@@ -19,7 +56,7 @@ export const MILESTONES: Milestone[] = [
       "Chatbot disclosure, AI-generated content marking, and deepfake labeling requirements take effect, and the Commission's enforcement powers over general-purpose AI models activate. The Digital Omnibus deferred high-risk obligations, but this transparency layer was not delayed.",
     implication:
       "Any organisation with customer-facing chatbots or AI-generated content in the EU market needs disclosure and marking mechanisms live by this date.",
-    status: "upcoming",
+    status: "in-force",
   },
   {
     date: "2026-12-02",
@@ -40,6 +77,17 @@ export const MILESTONES: Milestone[] = [
     implication:
       "Employers and lenders using automated decision tools for Colorado residents need notice and human-review workflows ready; chatbot operators face age-estimation and disclosure duties.",
     status: "upcoming",
+  },
+  {
+    date: "2027-01-22",
+    jurisdiction: "South Korea",
+    title: "AI Basic Act grace period ends: enforcement begins",
+    description:
+      "South Korea's AI Basic Act (formally the Framework Act on the Development of Artificial Intelligence and the Establishment of a Foundation for Trustworthiness) took effect on 22 January 2026, but MSIT is running a grace period of at least one year during which administrative fines are deferred, except in cases involving serious social harm. Substantive obligations already apply; the enforcement teeth arrive at the end of the grace window. The Act applies extraterritorially.",
+    implication:
+      "Organisations serving Korean users need transparency notices, generative-AI labelling, and, where thresholds are met, a designated local representative in place before fines become live.",
+    status: "upcoming",
+    sourceUrl: "https://www.trade.gov/market-intelligence/south-korea-ai-basic-act",
   },
   {
     date: "2027-12-02",

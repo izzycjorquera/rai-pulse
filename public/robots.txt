@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://rai-pulse.vercel.app/sitemap.xml
