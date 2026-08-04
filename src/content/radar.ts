@@ -110,3 +110,60 @@ export const MILESTONES: Milestone[] = [
     status: "upcoming",
   },
 ];
+
+/**
+ * Real, moving developments with no confirmed effective date yet -- deliberately
+ * excluded from MILESTONES above, which only carries dated deadlines.
+ */
+export interface HorizonItem {
+  jurisdiction: string;
+  title: string;
+  /** Short status label shown instead of a date, e.g. "Senate-approved · awaiting vote". */
+  statusTag: string;
+  description: string;
+  implication: string;
+  sourceUrl?: string;
+}
+
+export const HORIZON: HorizonItem[] = [
+  {
+    jurisdiction: "Brazil",
+    title: "AI regulatory framework (PL 2338/2023)",
+    statusTag: "Senate-approved · awaiting Chamber vote",
+    description:
+      "Brazil's comprehensive AI bill, approved by the Senate in December 2024, is under review in the Chamber of Deputies, with a vote expected before the August 2026 recess. Modelled on the EU's risk-based approach, with Brazil's data protection authority (ANPD) positioned as coordinating regulator.",
+    implication:
+      "Multinationals operating in Brazil should track the Chamber's amendments now: a risk-based, EU-style framework arriving in Latin America's largest economy would be the region's first anchor point.",
+    sourceUrl: "https://www25.senado.leg.br/web/atividade/materias/-/materia/157233",
+  },
+  {
+    jurisdiction: "New York, US",
+    title: "RAISE Act (frontier AI safety bill)",
+    statusTag: "Status pending confirmation",
+    description:
+      "New York's frontier-model safety bill was sent to the Governor's desk, with a decision originally expected around January 2026. Whether it was signed, vetoed, or is still pending has not been confirmed here: treat this as a signal to watch, not a settled outcome.",
+    implication:
+      "A signed RAISE Act would make New York a fourth distinct US state approach to AI regulation, alongside Colorado, Texas and California.",
+    sourceUrl: "https://www.nysenate.gov",
+  },
+  {
+    jurisdiction: "China",
+    title: "Anthropomorphic AI interaction ('companion AI') measures",
+    statusTag: "In consultation · draft stage",
+    description:
+      "Draft measures from the Cyberspace Administration of China (CAC), issued for consultation in April 2026, would govern AI services designed for human-like or companion-style interaction. Final text and effective date are not yet settled.",
+    implication:
+      "Product teams building companion or human-like AI experiences for the Chinese market should track the CAC's final text before committing to a compliance timeline.",
+    sourceUrl: "https://www.cac.gov.cn/",
+  },
+  {
+    jurisdiction: "Global",
+    title: "Framework Convention on Artificial Intelligence (CETS 225)",
+    statusTag: "Signed · awaiting ratification trigger",
+    description:
+      "The first legally binding international AI treaty, with more than 20 signatories as of mid-2026 including the UK, US, Canada, EU, Japan and Australia. It enters into force three months after five ratifications, including three Council of Europe member states; that threshold is not yet confirmed as met.",
+    implication:
+      "This is the closest thing to a cross-regional baseline in AI governance: once the ratification trigger is hit, it becomes the one commitment spanning nearly every jurisdiction tracked on this page.",
+    sourceUrl: "https://www.coe.int/en/web/artificial-intelligence/",
+  },
+];

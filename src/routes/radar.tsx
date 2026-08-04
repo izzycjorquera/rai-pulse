@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout } from "@/components/site-layout";
-import { MILESTONES, type Milestone } from "@/content/radar";
+import { HORIZON, MILESTONES, type HorizonItem, type Milestone } from "@/content/radar";
 
 export const Route = createFileRoute("/radar")({
   head: () => ({
@@ -120,6 +120,60 @@ function TimelineItem({ milestone }: { milestone: Milestone }) {
   );
 }
 
+function StatusTag({ children }: { children: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-dashed border-muted-foreground/40 bg-muted-foreground/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
+function HorizonCard({ item }: { item: HorizonItem }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-card/60 p-5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <JurisdictionBadge>{item.jurisdiction}</JurisdictionBadge>
+        <StatusTag>{item.statusTag}</StatusTag>
+      </div>
+      <h3 className="mt-2 font-serif text-lg font-semibold leading-snug">{item.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+      <p className="mt-3 border-l-2 border-muted-foreground/50 pl-3 text-[13px] leading-relaxed text-foreground/90">
+        {item.implication}
+      </p>
+      {item.sourceUrl && (
+        <a
+          href={item.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
+          className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-primary hover:underline"
+        >
+          Source →
+        </a>
+      )}
+    </div>
+  );
+}
+
+function OnTheHorizon({ items }: { items: HorizonItem[] }) {
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mt-14">
+      <h2 className="font-serif text-xl font-semibold">On the horizon</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Real, moving developments with no confirmed effective date yet: worth watching, not yet
+        worth a deadline.
+      </p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {items.map((item) => (
+          <HorizonCard key={item.title} item={item} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function RecentlyInForce({ milestones }: { milestones: Milestone[] }) {
   const [open, setOpen] = useState(false);
   if (milestones.length === 0) return null;
@@ -197,6 +251,7 @@ function RadarPage() {
           ))}
         </ol>
       </div>
+      <OnTheHorizon items={HORIZON} />
       <RecentlyInForce milestones={past} />
     </SiteLayout>
   );
