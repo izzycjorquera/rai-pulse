@@ -171,8 +171,12 @@
   font-family: "Montserrat", var(--font-sans);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.25em;
-  font-size: clamp(1.25rem, 3.5vw, 2rem);
+  /* Both scale down further than their vw term alone would allow, so
+     "RESPONSIBLE ... PULSE" fits on narrow phones instead of clipping at
+     the viewport edges -- the old fixed 0.25em tracking plus a 1.25rem
+     font-size floor left no room below ~400px wide. */
+  letter-spacing: clamp(0.1em, 1.5vw, 0.25em);
+  font-size: clamp(1rem, 3.2vw, 2rem);
   line-height: 1;
   color: var(--cream);
 }
