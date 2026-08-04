@@ -89,7 +89,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Latest updates across AI governance, regulation and geopolitics.",
       },
       { property: "og:type", content: "website" },
+      // Not a dedicated social-card image (that'd want 1200x630) -- the
+      // masthead logo as a stopgap so link previews show something instead
+      // of nothing, since twitter:card=summary_large_image needs an image
+      // to render at all.
+      { property: "og:image", content: "https://rai-pulse.vercel.app/masthead-logo.png" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://rai-pulse.vercel.app/masthead-logo.png" },
     ],
     links: [
       {
