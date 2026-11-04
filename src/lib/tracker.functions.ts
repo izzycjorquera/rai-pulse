@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { weeklyExpiresAt } from "./cache-schedule";
-import { getRedisClient, readArchive, type FeedArticle } from "./news.functions";
+import { backfillTags, getRedisClient, readArchive, type FeedArticle } from "./news.functions";
 import { aggregate, THEMES, type TrackerAggregate } from "./tracker";
 
 const TRACKER_WEEKS = 12;
@@ -170,7 +170,7 @@ export const getTracker = createServerFn({ method: "GET" }).handler(
   async (): Promise<TrackerPayload> => {
     if (inflight) return inflight;
     inflight = (async () => {
-      const weeks = await readArchive(TRACKER_WEEKS);
+      const weeks = await backfillTags(await readArchive(TRACKER_WEEKS));
       const agg = aggregate(weeks);
       const synthesis = await getSynthesis(agg);
       return { ...agg, synthesis, generatedAt: new Date().toISOString() };
