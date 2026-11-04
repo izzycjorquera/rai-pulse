@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { extractJsonArray, isAllowedUrl, relativeDate } from "./news.functions";
+import { extractJsonArray, isAllowedUrl, mergeTags, relativeDate } from "./news.functions";
 
 describe("isAllowedUrl", () => {
   const domains = ["reuters.com", "bbc.co.uk"];
@@ -76,5 +76,35 @@ describe("relativeDate", () => {
 
   test("returns empty string for an unparseable date", () => {
     expect(relativeDate("not a date")).toBe("");
+  });
+});
+
+describe("mergeTags", () => {
+  const base = {
+    source: "Reuters",
+    date: "today",
+    summary: "",
+    enterpriseImplication: "",
+  };
+  const articles = [
+    { ...base, title: "A", url: "https://reuters.com/a" },
+    { ...base, title: "B", url: "https://reuters.com/b" },
+  ];
+
+  test("applies normalised tags by story number and keeps story order", () => {
+    const out = mergeTags(articles, [
+      { i: 1, th: ["sovereignty", "Not a theme"], in: "law", d: "tightening" },
+    ]);
+    expect(out.map((a) => a.title)).toEqual(["A", "B"]);
+    expect(out[1]).toMatchObject({
+      themes: ["Sovereignty"],
+      instrument: "Law",
+      direction: "Tightening",
+    });
+  });
+
+  test("marks untagged stories as tagged-with-nothing so they aren't retried", () => {
+    const out = mergeTags(articles, []);
+    expect(out[0].themes).toEqual([]);
   });
 });

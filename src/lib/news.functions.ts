@@ -657,6 +657,126 @@ export async function readArchive(maxWeeks: number): Promise<ArchivedWeek[]> {
   return weeks;
 }
 
+const TAGGING_TIMEOUT_MS = 60_000;
+
+const TAGGING_PROMPT =
+  'You tag stories from RAI Pulse, a weekly AI governance briefing, for a fragmentation tracker. For each numbered story return: "th": an array of zero to three themes from exactly this list, only where the story is genuinely about that theme: ' +
+  THEMES.join(" · ") +
+  '. Fragmentation means jurisdictions diverging (conflicting rules, unilateral moves); Alignment means converging (shared standards, mutual recognition, agreements); Sovereignty covers sovereign compute or models, data localisation and export controls; Concentration risk covers dependence on a few model, cloud or chip providers; Financial services covers AI in finance or action by financial regulators. Use an empty array if none fit. "in": the instrument, exactly one of Law · Guidance · Consultation · Enforcement · Statement · Other (Law includes adopted legislation and binding rules; Statement includes speeches and announcements). "d": the regulatory direction, exactly one of Tightening · Loosening · Neutral. Return only minified JSON on one line: an array of objects with fields "i" (the story number), "th", "in" and "d". No commentary outside the JSON.';
+
+/**
+ * Add tracker tags to stories that were curated before tagging existed,
+ * without changing which stories were selected. Returns null on failure.
+ */
+async function tagArticles(apiKey: string, articles: FeedArticle[]): Promise<FeedArticle[] | null> {
+  const list = articles
+    .map(
+      (a, i) =>
+        `${i}. ${a.title}\n   Source: ${a.source} | Region: ${a.region ?? "?"} | Country: ${a.country ?? "?"}\n   ${a.enterpriseImplication || a.summary}`,
+    )
+    .join("\n\n");
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          system: TAGGING_PROMPT,
+          messages: [{ role: "user", content: list }],
+        }),
+      },
+      TAGGING_TIMEOUT_MS,
+    );
+    if (!res.ok) {
+      console.error("[news] Tagging HTTP error:", res.status, await res.text());
+      return null;
+    }
+    const json = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
+    const text =
+      json.content
+        ?.filter((c) => c.type === "text" && c.text)
+        .map((c) => c.text as string)
+        .join(" ") ?? "";
+    const parsed = extractJsonArray(text);
+    if (!parsed) {
+      console.error("[news] Tagging response had no parseable JSON array:", text);
+      return null;
+    }
+    return mergeTags(articles, parsed);
+  } catch (err) {
+    console.error("[news] Tagging error:", err);
+    return null;
+  }
+}
+
+/** Apply model tags by story number. Untouched stories get an empty theme list. */
+export function mergeTags(articles: FeedArticle[], picks: CurationPick[]): FeedArticle[] {
+  const byIndex = new Map<number, CurationPick>();
+  for (const p of picks) if (typeof p.i === "number") byIndex.set(p.i, p);
+  return articles.map((a, i) => {
+    const p = byIndex.get(i);
+    return {
+      ...a,
+      themes: normaliseThemes(p?.th),
+      instrument: normaliseInstrument(p?.in),
+      direction: normaliseDirection(p?.d),
+    };
+  });
+}
+
+// Weeks this server instance has already tried to backfill, so a failing
+// tagging call isn't retried on every tracker request.
+const backfillAttempted = new Set<string>();
+
+/**
+ * Tag any archived week whose stories predate tagging (`themes` undefined),
+ * then persist the result so it only happens once. Used so the tracker can
+ * show the current week straight away rather than waiting for Monday.
+ */
+export async function backfillTags(weeks: ArchivedWeek[]): Promise<ArchivedWeek[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return weeks;
+  const out: ArchivedWeek[] = [];
+  for (const w of weeks) {
+    const needsTags = w.articles.some((a) => a.themes === undefined);
+    if (!needsTags || backfillAttempted.has(w.week)) {
+      out.push(w);
+      continue;
+    }
+    backfillAttempted.add(w.week);
+    const tagged = await tagArticles(apiKey, w.articles);
+    if (!tagged) {
+      out.push(w);
+      continue;
+    }
+    const updated: ArchivedWeek = { ...w, articles: tagged };
+    out.push(updated);
+    await archiveWeek({ articles: tagged, intro: null, updatedAt: w.updatedAt, error: null });
+    // Keep the live briefing in step, so the homepage and future tracker
+    // reads see the tagged version rather than tagging it again.
+    if (cache && cache.payload.updatedAt === w.updatedAt) {
+      cache = { ...cache, payload: { ...cache.payload, articles: tagged } };
+      await savePersistedCache(cache);
+    } else {
+      const persisted = await getPersistedCache();
+      if (persisted && persisted.payload.updatedAt === w.updatedAt) {
+        await savePersistedCache({
+          ...persisted,
+          payload: { ...persisted.payload, articles: tagged },
+        });
+      }
+    }
+  }
+  return out;
+}
+
 export { getRedisClient };
 
 export { BRIEFING_UNAVAILABLE };
