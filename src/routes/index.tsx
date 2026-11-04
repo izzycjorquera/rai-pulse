@@ -136,6 +136,11 @@ function Index() {
                           <span className="font-medium text-foreground/80">{a.source}</span>
                           <span className="text-border">·</span>
                           <span>{a.date}</span>
+                          {a.primary && (
+                            <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1F1D1A]">
+                              Primary source
+                            </span>
+                          )}
                           {a.region && (
                             <>
                               <span className="text-border">·</span>

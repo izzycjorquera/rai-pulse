@@ -1,6 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { Redis } from "@upstash/redis";
 import { weeklyExpiresAt } from "./cache-schedule";
+import { isAiRelevant, parseFeed, PRIMARY_DOMAINS, PRIMARY_FEEDS } from "./rss";
+import {
+  normaliseDirection,
+  normaliseInstrument,
+  normaliseThemes,
+  THEMES,
+  updateIndex,
+  weekKey,
+  type ArchivedWeek,
+} from "./tracker";
 
 export type FeedArticle = {
   title: string;
@@ -15,6 +25,12 @@ export type FeedArticle = {
   lon?: number;
   imageUrl?: string;
   topic?: string;
+  /** Tracker themes (see tracker.ts), 0-3 per story. */
+  themes?: string[];
+  instrument?: string;
+  direction?: string;
+  /** True when the item came from an official policy-body feed, not news. */
+  primary?: boolean;
 };
 
 export type FeedPayload = {
@@ -54,7 +70,9 @@ export function relativeDate(iso: string): string {
 }
 
 const CURATION_PROMPT =
-  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most significant stories of the week for responsible AI, ranked by significance for enterprise readers (most significant first). Discard product launches, stock news, and opinion pieces.\n\nFor each selected story, assign a region code using exactly one of these strings:\n\nNA — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEU — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAP — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRW — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions, assign it to the region where the regulatory action originates.\n\nAlso pick the single most relevant country as a "c" field: use the country\'s common English name (e.g. "United States", "United Kingdom", "China"), or the exact string "EU" for EU-wide stories not tied to one member state, or "Global" for genuinely multilateral stories with no single locus.\n\nAssign each story exactly one topic tag from this list, choosing the most specific fit: Regulation & Enforcement · Safety & Testing · Chips & Export Controls · Litigation & Liability · Labor & Workforce · Privacy & Data · National AI Strategy · Standards & Frameworks · Defense & Security · Corporate Accountability. Aim for topical variety across the 12 selections — if two stories tell the same story, prefer the more significant one and pick something different for the other slot.\n\nFor each story, write two short sentences read as one flowing takeaway — never label or separate them as distinct parts. The first sentence states the key development in plain terms: what was actually decided, proposed, or found. The second sentence carries the concrete business implication for enterprise responsible-AI practitioners, beginning with the affected actor — e.g. "Compliance teams...", "Fleet operators...", "Multinationals with EU operations...", "Procurement leads..." — and never using a stock prefix like "For enterprises:" or "Why it matters:". Vary the actor openings across the selection. Keep the whole thing tight: two short sentences, 45 words maximum total. Do not use em dashes in the takeaway text; use a comma, colon, or semicolon instead.\n\nReturn only valid JSON: an array of objects, ordered by significance (most significant first), with these exact short-key fields per object: "i" (integer, referring to the numbered headline), "r" (region code, one of "NA", "EU", "AP", "RW"), "c" (country string), "t" (topic tag), and "m" (the two-sentence takeaway). Return the JSON minified on a single line — no line breaks or indentation. No commentary outside the JSON.';
+  'You are the editor of RAI Pulse, a weekly AI governance briefing for enterprise readers. From these headlines, select the 12 most significant stories of the week for responsible AI, ranked by significance for enterprise readers (most significant first). Discard product launches, stock news, and opinion pieces.\n\nFor each selected story, assign a region code using exactly one of these strings:\n\nNA — stories about the US (federal or state level, e.g. California, Colorado), Canada, or Mexico.\n\nEU — stories about the EU, any EU member state, the UK, Switzerland, Norway, or the Council of Europe.\n\nAP — stories about China, Japan, South Korea, India, Singapore, Australia, New Zealand, or ASEAN countries.\n\nRW — everything else: Middle East, Africa, Latin America (excluding Mexico), and genuinely global/multilateral stories (UN, OECD, G7, international treaties).\n\nIf a story spans multiple regions, assign it to the region where the regulatory action originates.\n\nAlso pick the single most relevant country as a "c" field: use the country\'s common English name (e.g. "United States", "United Kingdom", "China"), or the exact string "EU" for EU-wide stories not tied to one member state, or "Global" for genuinely multilateral stories with no single locus.\n\nAssign each story exactly one topic tag from this list, choosing the most specific fit: Regulation & Enforcement · Safety & Testing · Chips & Export Controls · Litigation & Liability · Labor & Workforce · Privacy & Data · National AI Strategy · Standards & Frameworks · Defense & Security · Corporate Accountability. Aim for topical variety across the 12 selections — if two stories tell the same story, prefer the more significant one and pick something different for the other slot.\n\nFor each story, write two short sentences read as one flowing takeaway — never label or separate them as distinct parts. The first sentence states the key development in plain terms: what was actually decided, proposed, or found. The second sentence carries the concrete business implication for enterprise responsible-AI practitioners, beginning with the affected actor — e.g. "Compliance teams...", "Fleet operators...", "Multinationals with EU operations...", "Procurement leads..." — and never using a stock prefix like "For enterprises:" or "Why it matters:". Vary the actor openings across the selection. Keep the whole thing tight: two short sentences, 45 words maximum total. Do not use em dashes in the takeaway text; use a comma, colon, or semicolon instead.\n\nSome items are marked [Primary source]: these are official publications from financial authorities and standard setters. Treat them as candidates on equal terms with news, and prefer a primary source over a news report of the same development.\n\nAlso tag each story for a fragmentation tracker. "th": an array of zero to three themes from exactly this list, only where the story is genuinely about that theme: ' +
+  THEMES.join(" · ") +
+  '. Fragmentation means jurisdictions diverging (conflicting rules, unilateral moves); Alignment means converging (shared standards, mutual recognition, agreements); Sovereignty covers sovereign compute or models, data localisation and export controls; Concentration risk covers dependence on a few model, cloud or chip providers; Financial services covers AI in finance or action by financial regulators. Use an empty array if none fit. "in": the instrument, exactly one of Law · Guidance · Consultation · Enforcement · Statement · Other (Law includes adopted legislation and binding rules; Statement includes speeches and announcements). "d": the regulatory direction, exactly one of Tightening · Loosening · Neutral.\n\nReturn only valid JSON: an array of objects, ordered by significance (most significant first), with these exact short-key fields per object: "i" (integer, referring to the numbered headline), "r" (region code, one of "NA", "EU", "AP", "RW"), "c" (country string), "t" (topic tag), "m" (the two-sentence takeaway), "th" (array of theme strings), "in" (instrument string) and "d" (direction string). Return the JSON minified on a single line — no line breaks or indentation. No commentary outside the JSON.';
 
 const INTRO_PROMPT =
   "You are a neutral analyst writing for RAI Pulse, a weekly briefing on AI governance for enterprise readers. Given the numbered stories selected for this week, write a short intro paragraph synthesizing the overall picture of the week. Rules: 2-3 sentences, neutral analyst voice, no opinion, no markdown, no asterisks, no bold, no bullet points, no em dashes (use a comma, colon, or semicolon instead). Every claim must be supported by the provided stories. Do not refer to 'the articles', 'the headlines', 'the stories' or 'the coverage'. Return plain text only, no JSON, no preamble.";
@@ -217,6 +235,7 @@ type Candidate = {
   summary: string;
   url: string;
   imageUrl?: string;
+  primary?: boolean;
 };
 
 type CurationPick = {
@@ -225,6 +244,9 @@ type CurationPick = {
   c?: string;
   t?: string;
   m?: string;
+  th?: unknown;
+  in?: unknown;
+  d?: unknown;
 };
 
 // Claude is asked for bare JSON but may wrap it in prose despite the prompt;
@@ -253,11 +275,17 @@ async function curateWithClaude(
       lat?: number;
       lon?: number;
       topic?: string;
+      themes: string[];
+      instrument?: string;
+      direction?: string;
     }[]
   | null
 > {
   const list = candidates
-    .map((c, i) => `${i}. ${c.title}\n   Source: ${c.source}\n   ${c.summary}`)
+    .map(
+      (c, i) =>
+        `${i}. ${c.primary ? "[Primary source] " : ""}${c.title}\n   Source: ${c.source}\n   ${c.summary}`,
+    )
     .join("\n\n");
   try {
     const res = await fetchWithTimeout(
@@ -314,6 +342,9 @@ async function curateWithClaude(
           lat: coords?.lat,
           lon: coords?.lon,
           topic,
+          themes: normaliseThemes(p.th),
+          instrument: normaliseInstrument(p.in),
+          direction: normaliseDirection(p.d),
         };
       })
       .slice(0, 12);
@@ -373,7 +404,7 @@ async function generateIntro(apiKey: string, articles: FeedArticle[]): Promise<s
 
 // Every article link is checked against this allowlist before it renders —
 // exported for testing (`isAllowedUrl`) since it's the site's one link-safety gate.
-export const ALLOWED_DOMAINS = [
+const NEWS_DOMAINS = [
   "bbc.co.uk",
   "reuters.com",
   "ft.com",
@@ -394,6 +425,8 @@ export const ALLOWED_DOMAINS = [
   "restofworld.org",
 ];
 
+export const ALLOWED_DOMAINS = [...NEWS_DOMAINS, ...PRIMARY_DOMAINS];
+
 export function isAllowedUrl(
   articleUrl: string,
   allowedDomains: string[] = ALLOWED_DOMAINS,
@@ -406,33 +439,68 @@ export function isAllowedUrl(
   }
 }
 
-async function buildPayload(): Promise<FeedPayload> {
-  const key = process.env.NEWSAPI_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+const PRIMARY_TIMEOUT_MS = 6_000;
+const PRIMARY_WINDOW_MS = 14 * 86_400_000;
+const MAX_PRIMARY_CANDIDATES = 15;
+
+// Official policy-body feeds, filtered to AI-relevant items from the last two
+// weeks (these bodies publish less often than news outlets). Each feed fails
+// independently: one feed being down never blocks the briefing.
+async function fetchPrimaryCandidates(previousUrls: Set<string>): Promise<Candidate[]> {
+  const cutoff = Date.now() - PRIMARY_WINDOW_MS;
+  const results = await Promise.allSettled(
+    PRIMARY_FEEDS.map(async (feed) => {
+      const res = await fetchWithTimeout(
+        feed.url,
+        { headers: { "User-Agent": "RAI-Pulse/1.0" } },
+        PRIMARY_TIMEOUT_MS,
+      );
+      if (!res.ok) throw new Error(`${feed.name}: HTTP ${res.status}`);
+      return parseFeed(await res.text()).map((item) => ({ item, feed }));
+    }),
+  );
+  const seen = new Set<string>();
+  const out: Candidate[] = [];
+  for (const r of results) {
+    if (r.status === "rejected") {
+      console.error("[news] Primary feed failed:", r.reason);
+      continue;
+    }
+    for (const { item, feed } of r.value) {
+      if (!item.date || new Date(item.date).getTime() < cutoff) continue;
+      if (!isAiRelevant(item)) continue;
+      if (!isAllowedUrl(item.link) || seen.has(item.link) || previousUrls.has(item.link)) continue;
+      seen.add(item.link);
+      out.push({
+        title: item.title,
+        source: feed.name,
+        date: relativeDate(item.date),
+        summary: item.description || item.title,
+        url: item.link,
+        primary: true,
+      });
+    }
+  }
+  return out.slice(0, MAX_PRIMARY_CANDIDATES);
+}
+
+type NewsResult = { candidates: Candidate[]; error: string | null };
+
+async function fetchNewsCandidates(
+  key: string | undefined,
+  previousUrls: Set<string>,
+): Promise<NewsResult> {
   if (!key) {
     console.error("[news] Missing NEWSAPI_KEY");
-    return {
-      articles: [],
-      intro: null,
-      updatedAt: new Date().toISOString(),
-      error: "Missing NEWSAPI_KEY",
-    };
+    return { candidates: [], error: "Missing NEWSAPI_KEY" };
   }
-
-  // Stage 1: broad fetch. Keep the query intentionally wide — Claude filters.
+  // Broad fetch. Keep the query intentionally wide — Claude filters.
   const q = encodeURIComponent(
     '(AI OR "artificial intelligence") AND (regulation OR governance OR policy OR regulator OR lawmakers OR "export controls" OR compliance OR oversight)',
   );
-  const domains = ALLOWED_DOMAINS.join(",");
+  const domains = NEWS_DOMAINS.join(",");
   const from = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
   const url = `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=relevancy&pageSize=100&from=${from}&domains=${domains}`;
-
-  // Exclude last week's selected articles from the candidate pool so a story
-  // that's still within the 7-day NewsAPI window can't be picked twice in a
-  // row. Backed by Redis so it survives deploys and cold starts, not just
-  // whatever's left in the in-memory cache.
-  const previousUrls = await getPreviousArticleUrls();
-
   try {
     const res = await fetchWithTimeout(
       url,
@@ -442,14 +510,8 @@ async function buildPayload(): Promise<FeedPayload> {
     const json = (await res.json()) as NewsApiResponse;
     if (!res.ok || json.status !== "ok" || !json.articles) {
       console.error("[news] NewsAPI HTTP error:", res.status, json.message);
-      return {
-        articles: [],
-        intro: null,
-        updatedAt: new Date().toISOString(),
-        error: json.message ?? `HTTP ${res.status}`,
-      };
+      return { candidates: [], error: json.message ?? `HTTP ${res.status}` };
     }
-    // Deduplicate by URL before anything else.
     const seen = new Set<string>();
     const candidates: Candidate[] = json.articles
       .filter((a) => {
@@ -472,36 +534,48 @@ async function buildPayload(): Promise<FeedPayload> {
             ? a.urlToImage
             : undefined,
       }));
-    debugLog("[news] candidates after filter:", candidates.length);
+    return { candidates, error: null };
+  } catch (e) {
+    console.error("[news] NewsAPI fetch error:", e);
+    return { candidates: [], error: e instanceof Error ? e.message : "Failed to fetch news" };
+  }
+}
+
+function failed(error: string): FeedPayload {
+  return { articles: [], intro: null, updatedAt: new Date().toISOString(), error };
+}
+
+async function buildPayload(): Promise<FeedPayload> {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+  // Exclude last week's selected articles from the candidate pool so a story
+  // that's still within the fetch window can't be picked twice in a row.
+  // Backed by Redis so it survives deploys and cold starts, not just
+  // whatever's left in the in-memory cache.
+  const previousUrls = await getPreviousArticleUrls();
+
+  try {
+    const [news, primary] = await Promise.all([
+      fetchNewsCandidates(process.env.NEWSAPI_KEY, previousUrls),
+      fetchPrimaryCandidates(previousUrls),
+    ]);
+    // Primary sources alone are enough to run a briefing if NewsAPI is down.
+    const candidates = [...news.candidates, ...primary];
+    debugLog("[news] candidates:", news.candidates.length, "news +", primary.length, "primary");
 
     if (candidates.length === 0) {
       console.error("[news] No candidates after filter");
-      return {
-        articles: [],
-        intro: null,
-        updatedAt: new Date().toISOString(),
-        error: "No candidates after filter",
-      };
+      return failed(news.error ?? "No candidates after filter");
     }
 
     if (!anthropicKey) {
       console.error("[news] Missing ANTHROPIC_API_KEY");
-      return {
-        articles: [],
-        intro: null,
-        updatedAt: new Date().toISOString(),
-        error: "Missing ANTHROPIC_API_KEY",
-      };
+      return failed("Missing ANTHROPIC_API_KEY");
     }
     const picks = await curateWithClaude(anthropicKey, candidates);
     if (!picks || picks.length === 0) {
       console.error("[news] Curation failed");
-      return {
-        articles: [],
-        intro: null,
-        updatedAt: new Date().toISOString(),
-        error: "Curation failed",
-      };
+      return failed("Curation failed");
     }
     debugLog(
       `[news] Claude selected ${picks.length} articles:`,
@@ -518,6 +592,9 @@ async function buildPayload(): Promise<FeedPayload> {
       lat: p.lat,
       lon: p.lon,
       topic: p.topic,
+      themes: p.themes,
+      instrument: p.instrument,
+      direction: p.direction,
     }));
 
     const intro = await generateIntro(anthropicKey, articles);
@@ -530,14 +607,57 @@ async function buildPayload(): Promise<FeedPayload> {
     };
   } catch (e) {
     console.error("[news] buildPayload error:", e);
-    return {
-      articles: [],
-      intro: null,
-      updatedAt: new Date().toISOString(),
-      error: e instanceof Error ? e.message : "Failed to fetch news",
-    };
+    return failed(e instanceof Error ? e.message : "Failed to fetch news");
   }
 }
+
+// Weekly archive for the fragmentation tracker. Each successful briefing is
+// stored under its week key, with a small index of week keys (newest first),
+// so the tracker can aggregate across months rather than one week.
+export const ARCHIVE_INDEX_KEY = "rai-pulse:archive:index";
+export const archiveWeekKey = (week: string) => `rai-pulse:archive:${week}`;
+
+async function archiveWeek(payload: FeedPayload): Promise<void> {
+  const redis = getRedisClient();
+  if (!redis || payload.articles.length === 0) return;
+  const week = weekKey(payload.updatedAt);
+  const entry: ArchivedWeek = { week, updatedAt: payload.updatedAt, articles: payload.articles };
+  try {
+    const index = (await redis.get<string[]>(ARCHIVE_INDEX_KEY)) ?? [];
+    await redis.set(archiveWeekKey(week), entry);
+    await redis.set(ARCHIVE_INDEX_KEY, updateIndex(index, week));
+  } catch (err) {
+    console.error("[news] Failed to archive week:", err);
+  }
+}
+
+export async function readArchive(maxWeeks: number): Promise<ArchivedWeek[]> {
+  const redis = getRedisClient();
+  const weeks: ArchivedWeek[] = [];
+  if (redis) {
+    try {
+      const index = ((await redis.get<string[]>(ARCHIVE_INDEX_KEY)) ?? []).slice(0, maxWeeks);
+      const entries = await Promise.all(
+        index.map((w) => redis.get<ArchivedWeek>(archiveWeekKey(w))),
+      );
+      for (const e of entries) if (e) weeks.push(e);
+    } catch (err) {
+      console.error("[news] Failed to read archive:", err);
+    }
+  }
+  // Include the current briefing if it isn't archived yet (e.g. it was built
+  // before archiving existed, or Redis isn't configured in local dev).
+  const current = cache?.payload ?? (await getPersistedCache())?.payload;
+  if (current && current.articles.length > 0) {
+    const week = weekKey(current.updatedAt);
+    if (!weeks.some((w) => w.week === week)) {
+      weeks.push({ week, updatedAt: current.updatedAt, articles: current.articles });
+    }
+  }
+  return weeks;
+}
+
+export { getRedisClient };
 
 export { BRIEFING_UNAVAILABLE };
 
@@ -569,6 +689,7 @@ export const getRegulatoryFeed = createServerFn({ method: "GET" }).handler(
         // Awaited, not fire-and-forget: Vercel can freeze the function right
         // after the response is sent, which would silently drop an unawaited write.
         await savePersistedCache(entry);
+        if (payload.error === null) await archiveWeek(payload);
         return payload;
       })
       .finally(() => {
